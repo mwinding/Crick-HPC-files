@@ -3,6 +3,7 @@ import argparse
 import tempfile
 import subprocess
 import time
+import json
 
 # pulling user-input variables from command line
 parser = argparse.ArgumentParser(description='sleap_inference: batch inference using sleap models on NEMO')
