@@ -10,15 +10,6 @@
 #SBATCH --mail-user=$(whoami)@crick.ac.uk
 #SBATCH --mail-type=FAIL
 
-# Path to the directory containing the video files
-DIR=$1
-
-# Path to the centroid model
-CENTROID=$2
-
-# Path to the centered instance model
-CEN_INS=$3
-
 ml purge
 ml Anaconda3/2023.09-0
 source /camp/apps/eb/software/Anaconda/conda.env.sh
