@@ -16,4 +16,4 @@ ml Anaconda3/2023.09-0
 source /camp/apps/eb/software/Anaconda/conda.env.sh
 
 conda activate sleap
-bash inference-script.sh
+sleap-track videos/UNWRAPPED_2024-02-15_14-17-53_pupae_01-31_LK_AM_2_S1.mp4.jpg --video.dataset video --video.input_format channels_last -m 240306_235934.centroid -m 240306_235934.centered_instance

@@ -29,7 +29,7 @@ names_joined = ' '.join(names)
 
 # sbatch script to run the array job
 script = f"""#!/bin/bash
-#SBATCH --job-name=sleap-infer
+#SBATCH --job-name=slp-infer
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --array=1-{num_videos}
