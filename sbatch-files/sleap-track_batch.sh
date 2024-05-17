@@ -25,11 +25,11 @@ fi
 echo "#!/bin/bash
 #SBATCH --job-name=sleap-infer
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=16
 #SBATCH --array=1-$num_files
 #SBATCH --partition=ncpu
-#SBATCH --mem=10G
-#SBATCH --time=08:00:00
+#SBATCH --mem=64G
+#SBATCH --time=12:00:00
 #SBATCH --mail-user=$(whoami)@crick.ac.uk
 #SBATCH --mail-type=FAIL
 
@@ -39,17 +39,18 @@ source /camp/apps/eb/software/Anaconda/conda.env.sh
 
 conda activate sleap
 
-DIR=$DIR
-CENTROID=$CENTROID
-CEN_INS=$CEN_INS
-
 FILE_PATH=\$(find \"${DIR}\" -maxdepth 1 -type f -name '*.mp4' | sort | sed -n \"\${SLURM_ARRAY_TASK_ID}p\")
 
 echo \"Processing file \$FILE_PATH\"
+echo \"${CENTROID}\"
+echo \"${CEN_INS}\"
+
 NAME_VAR=\$(basename \"\$FILE_PATH\" .mp4)
-sleap-track \"\$FILE_PATH\" -m \$CENTROID -m \$CEN_INS -o \$DIR/\$NAME_VAR.predictions.slp
-sleap-convert \$DIR/\$NAME_VAR.predictions.slp -o \$DIR/\$NAME_VAR.json --format json
-sleap-convert \$DIR/\$NAME_VAR.predictions.slp -o \$DIR/\\$NAME_VAR.csv --format csv" > sleap-track_array-job.sh
+echo $NAME_VAR
+echo $FILE_PATH
+sleap-track $FILE_PATH -m \"${CENTROID}\" -m \"${CEN_INS}\" -o \"${DIR}\"/\$NAME_VAR.predictions.slp
+sleap-convert \"${DIR}\"/\$NAME_VAR.predictions.slp -o \"${DIR}\"/\$NAME_VAR.json --format json
+sleap-convert \"${DIR}\"/\$NAME_VAR.predictions.slp -o \"${DIR}\"/\$NAME_VAR.csv --format csv" > sleap-track_array-job.sh
 
 # Submit the dynamically created SBATCH script
 sbatch sleap-track_array-job.sh
