@@ -14,6 +14,10 @@ ml purge
 ml Anaconda3/2023.09-0
 source /camp/apps/eb/software/Anaconda/conda.env.sh
 
+echo "$CENTROID"
+echo "$CEN_INS"
+echo "$DIR"
+
 conda activate sleap
-cmd="python sleap-track_batch.py -m1 "$CENTROID" -m2 "$CEN_INS" -p "$DIR""
+cmd="python3 sleap-track_batch.py -m1 "$CENTROID" -m2 "$CEN_INS" -p "$DIR""
 eval $cmd > python_output.log 2>&1
