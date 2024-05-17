@@ -52,8 +52,14 @@ path_var="${{path_array[$SLURM_ARRAY_TASK_ID-1]}}"
 IFS=' ' read -r -a name_array <<< "{names_joined}"
 name_var="${{name_array[$SLURM_ARRAY_TASK_ID-1]}}"
 
-echo $name_var
-echo $path_var
+echo "Processing mp4: $name_var"
+echo "Full path to mp4: $path_var"
+echo "Centroid model path: {centroid_model}"
+echo "Centered instance model path: {centered_model}"
+echo "Output path: {videos_path}/$name_var.predictions.slp"
+echo "Output path: {videos_path}/$name_var.tracks.slp"
+echo "Output path: {videos_path}/$name_var.tracks.json"
+
 sleap-track $path_var -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
 sleap-track --tracking.tracker flow -o {videos_path}/$name_var.tracks.slp {videos_path}/$name_var.predictions.slp
 sleap-convert {videos_path}/$name_var.tracks.slp -o {videos_path}/$name_var.tracks.json --format json
