@@ -1,7 +1,7 @@
 #!/bin/bash
 # Usage: ./sleap-track_batch.sh /path/to/your/folder /path/to/centroid/model /path/to/centered_instance/model
 
-#SBATCH --job-name=sleap-master
+#SBATCH --job-name=slp-master
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --partition=ncpu
@@ -19,5 +19,8 @@ echo "centered instance model path: $CEN_INS"
 echo "videos directory path: $DIR"
 
 conda activate sleap
+
+# run python script
+# save output to log file in case there is an issue
 cmd="python sleap-track_batch.py -m1 "$CENTROID" -m2 "$CEN_INS" -p "$DIR""
 eval $cmd > python_output.log 2>&1
