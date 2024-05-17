@@ -2,32 +2,36 @@ import os
 import argparse
 import tempfile
 import subprocess
+import time
 
 # pulling user-input variables from command line
 parser = argparse.ArgumentParser(description='sleap_inference: batch inference using sleap models on NEMO')
 parser.add_argument('-m1', '--centroid-model', dest='centroid_model', action='store', type=str, required=True, help='path to centroid model')
 parser.add_argument('-m2', '--centered-model', dest='centered_model', action='store', type=str, required=True, help='path to centered instance model')
 parser.add_argument('-p', '--videos-path', dest='videos_path', action='store', type=str, default=None, help='path to ip_address list')
+parser.add_argument('-s', '--skeleton-parts', dest='skel_parts', action='store', type=str, nargs='+', default=None, help='all node names in SLEAP skeleton')
 
 # ingesting user-input arguments
 args = parser.parse_args()
 centroid_model = args.centroid_model
 centered_model = args.centered_model
 videos_path = args.videos_path
+skel_parts = args.skel_parts
 
-# batch process videos in folder
+# identify paths and filenames of all .mp4s in folder
 if(os.path.isdir(videos_path)):
     video_file_paths = [f'{videos_path}/{f}' for f in os.listdir(videos_path) if os.path.isfile(os.path.join(videos_path, f)) and (f.endswith('.mp4'))]
     names = [os.path.basename(video_file_path).replace('.mp4', '') for video_file_path in video_file_paths]
 else:
     print('Error: -p/--videos-path is not a directory!')
 
-# identify number of videos
 num_videos = len(video_file_paths)
+
+# join all paths together in one string that can be later split by the .sh script
 video_file_paths_joined = ' '.join(video_file_paths)
 names_joined = ' '.join(names)
 
-# sbatch script to run the array job
+# sbatch script to run the array job, to run batch predictions with SLEAP on all videos
 script = f"""#!/bin/bash
 #SBATCH --job-name=slp-infer
 #SBATCH --ntasks=1
@@ -70,8 +74,88 @@ with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_script:
     tmp_script.write(script)
     tmp_script_path = tmp_script.name
 
-# Submit the SBATCH script
-process = subprocess.run(["sbatch", tmp_script_path])
+# run the SBATCH script
+job_id = subprocess.run(["sbatch", tmp_script_path])
 
-# Delete the temporary file after submission
+# delete the temporary sbatch file after submission
 os.unlink(tmp_script_path)
+
+# wait until all jobs are done
+def check_job_completed(job_id, initial_wait=120, wait=120):
+        seconds = initial_wait
+        print(f"\tWait for {seconds} seconds before checking if slurm job has completed")
+        time.sleep(seconds)
+        
+        # Wait for the array job to complete
+        print(f"\tWaiting for slurm job {job_id} to complete...")
+        while not is_job_completed(job_id):
+            print(f"\tSlurm job {job_id} is still running. Waiting...")
+            time.sleep(wait)  # Check every 30 seconds
+
+        print(f"\tSlurm job {job_id} has completed.\n")
+
+def is_job_completed(job_id):
+    cmd = ["sacct", "-j", f"{job_id}", "--format=JobID,State", "--noheader"]
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, text=True)
+    lines = result.stdout.strip().split('\n')
+
+    # Initialize flags
+    all_completed = True
+
+    for line in lines:
+        parts = line.split()
+        if len(parts) < 2:
+            continue  # Skip any malformed lines
+
+        job_id_part, job_state = parts[0], parts[1]
+
+        # Check for the main job ID and any array tasks
+        if job_id_part == job_id or "_" in job_id_part:  # This line is modified to also consider the main job
+            if job_state not in ["COMPLETED", "FAILED", "CANCELLED"]:
+                all_completed = False
+                break
+
+    return all_completed
+
+check_job_completed(job_id)
+
+# convert tracking JSONs to CSVs
+def process_tracks_json(videos_path, names, body_parts):
+    for name in names:
+        with open(f'{videos_path}/{name}.tracks.json', 'r') as file:
+            data = json.load(file)
+
+        data_labels = data['labels']
+
+        # Generate column names based on body parts
+        columns = ['label_id', 'frame'] + [f'{coord}_{part}' for part in body_parts for coord in ['x', 'y', 'score']]
+        
+        # Open a CSV file to write to
+        with open(f'{videos_path}/{name}.tracks.csv', mode='w', newline='') as file:
+            writer = csv.writer(file)
+            
+            # Write the header row
+            writer.writerow(columns)
+            
+            # Loop through each frame in the data
+            for frame in data_labels:
+                video_id = frame['video']
+                frame_idx = frame['frame_idx']
+
+                # Loop through each instance in the frame
+                for instance in frame['_instances']:
+                    # Initialize dictionary to store coordinates and scores
+                    coords = {part: {'x': None, 'y': None, 'score': None} for part in body_parts}
+
+                    # Loop through each point to assign coordinates and scores
+                    for point_id, point_details in instance['_points'].items():
+                        part_name = body_parts[int(point_id)]
+                        coords[part_name] = {'x': point_details['x'], 'y': point_details['y'], 'score': point_details['score']}
+                    
+                    # Write row data
+                    row = [video_id, frame_idx]
+                    for part in body_parts:
+                        row.extend([coords[part]['x'], coords[part]['y'], coords[part]['score']])
+                    writer.writerow(row)
+
+process_tracks_json(videos_path, names, body_parts)
