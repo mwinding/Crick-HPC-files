@@ -78,7 +78,7 @@ with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_script:
     tmp_script_path = tmp_script.name
 
 # run the SBATCH script
-process = subprocess.run(["sbatch", tmp_script_path])
+process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 # delete the temporary sbatch file after submission
 os.unlink(tmp_script_path)
