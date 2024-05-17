@@ -78,10 +78,17 @@ with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_script:
     tmp_script_path = tmp_script.name
 
 # run the SBATCH script
-job_id = subprocess.run(["sbatch", tmp_script_path])
+process = subprocess.run(["sbatch", tmp_script_path])
 
 # delete the temporary sbatch file after submission
 os.unlink(tmp_script_path)
+
+# Check the result and extract job ID from the output
+if process.returncode == 0:
+    job_id_output = process.stdout.strip()
+    print(f'\t{job_id_output}')
+
+    job_id = job_id_output.split()[-1]
 
 # wait until all jobs are done
 def check_job_completed(job_id, initial_wait=120, wait=120):
