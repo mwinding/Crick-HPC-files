@@ -17,10 +17,11 @@ source /camp/apps/eb/software/Anaconda/conda.env.sh
 echo "centroid model path: $CENTROID"
 echo "centered instance model path: $CEN_INS"
 echo "videos directory path: $DIR"
+echo "skeleton parts: $PARTS"
 
 conda activate sleap
 
 # run python script
 # save output to log file in case there is an issue
-cmd="python sleap-track_batch.py -m1 "$CENTROID" -m2 "$CEN_INS" -p "$DIR""
+cmd="python sleap-track_batch.py -m1 "$CENTROID" -m2 "$CEN_INS" -p "$DIR" -s "$PARTS""
 eval $cmd > python_output.log 2>&1
