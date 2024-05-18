@@ -23,5 +23,5 @@ conda activate sleap
 
 # run python script
 # save output to log file in case there is an issue
-cmd="python sleap-track_batch.py -m1 "$CENTROID" -m2 "$CEN_INS" -p "$DIR" -s "$PARTS""
+cmd="python -u sleap-track_batch.py -m1 "$CENTROID" -m2 "$CEN_INS" -p "$DIR" -s "$PARTS"" # adding -u makes sure the python_output.log is dynamically written to
 eval $cmd > python_output.log 2>&1
