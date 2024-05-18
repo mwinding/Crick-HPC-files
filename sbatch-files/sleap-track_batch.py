@@ -19,7 +19,6 @@ centroid_model = args.centroid_model
 centered_model = args.centered_model
 videos_path = args.videos_path
 skel_parts = args.skel_parts
-print(skel_parts)
 
 # identify paths and filenames of all .mp4s in folder
 if(os.path.isdir(videos_path)):
@@ -138,8 +137,8 @@ def process_tracks_json(videos_path, names, skel_parts):
         data_labels = data['labels']
 
         # Generate column names based on body parts
-        columns = ['label_id', 'frame'] + [f'{coord}_{part}' for part in skel_parts for coord in ['x', 'y', 'score']]
-        
+        columns = ['track_id', 'frame'] + [f'{coord}_{part}' for part in skel_parts for coord in ['x', 'y', 'score']]
+
         # Open a CSV file to write to
         with open(f'{videos_path}/{name}.tracks.csv', mode='w', newline='') as file:
             writer = csv.writer(file)
@@ -154,6 +153,8 @@ def process_tracks_json(videos_path, names, skel_parts):
 
                 # Loop through each instance in the frame
                 for instance in frame['_instances']:
+                    track_id = instance['track']
+
                     # Initialize dictionary to store coordinates and scores
                     coords = {part: {'x': None, 'y': None, 'score': None} for part in skel_parts}
 
@@ -163,7 +164,7 @@ def process_tracks_json(videos_path, names, skel_parts):
                         coords[part_name] = {'x': point_details['x'], 'y': point_details['y'], 'score': point_details['score']}
                     
                     # Write row data
-                    row = [video_id, frame_idx]
+                    row = [track_id, frame_idx]
                     for part in skel_parts:
                         row.extend([coords[part]['x'], coords[part]['y'], coords[part]['score']])
                     writer.writerow(row)
