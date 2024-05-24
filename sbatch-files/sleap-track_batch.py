@@ -66,8 +66,8 @@ echo "Output path: {videos_path}/$name_var.predictions.slp"
 echo "Output path: {videos_path}/$name_var.tracks.slp"
 echo "Output path: {videos_path}/$name_var.tracks.json"
 
-sleap-track $path_var -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
-sleap-track --tracking.tracker flow -o {videos_path}/$name_var.tracks.slp {videos_path}/$name_var.predictions.slp
+sleap-track $path_var --verbosity rich -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
+sleap-track --tracking.tracker flow --tracking.match hungarian --tracking.similarity centroid --verbosity rich -o {videos_path}/$name_var.tracks.slp {videos_path}/$name_var.predictions.slp
 sleap-convert {videos_path}/$name_var.tracks.slp -o {videos_path}/$name_var.tracks.json --format json
 """
 
