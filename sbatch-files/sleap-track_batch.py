@@ -39,7 +39,8 @@ script = f"""#!/bin/bash
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --array=1-{num_videos}
-#SBATCH --partition=ncpu
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
 #SBATCH --mem=64G
 #SBATCH --time=08:00:00
 #SBATCH --mail-user=$(whoami)@crick.ac.uk
@@ -47,6 +48,7 @@ script = f"""#!/bin/bash
 
 ml purge
 ml Anaconda3/2023.09-0
+ml CUDA/12.2.0
 source /camp/apps/eb/software/Anaconda/conda.env.sh
 
 conda activate sleap
