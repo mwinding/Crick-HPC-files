@@ -1,5 +1,8 @@
 #!/bin/bash
-# Usage: ./sleap-track_batch.sh /path/to/your/folder /path/to/centroid/model /path/to/centered_instance/model
+# Usage: sbatch --export=DIR="/path/to/video_folder",CENTROID="/path/to/centroid_model",CEN_INS="/path/to/centered_instance_model",PARTS="body_part1 body_part2 ..." sleap-track_batch.sh
+
+# *** MAKE SURE TO USE A REMOTELY-TRAINED MODEL!!!! ***
+# we have experienced many bugs with locally trained models running remotely...
 
 #SBATCH --job-name=slp-master
 #SBATCH --ntasks=1
