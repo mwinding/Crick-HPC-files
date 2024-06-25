@@ -13,6 +13,7 @@
 
 ml purge
 ml Anaconda3/2023.09-0
+ml CUDA/12.2.0
 source /camp/apps/eb/software/Anaconda/conda.env.sh
 
 conda activate sleap
