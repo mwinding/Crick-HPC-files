@@ -10,11 +10,15 @@ import csv
 parser = argparse.ArgumentParser(description='sleap_inference: batch inference using sleap models on NEMO')
 parser.add_argument('-m', '--model', dest='model', action='store', type=str, required=True, help='type of model')
 parser.add_argument('-p', '--videos-path', dest='videos_path', action='store', type=str, default=None, help='path to ip_address list')
+parser.add_argument('-t', '--track', dest='track', action='store', type=str, default=None, help='track animals?')
 
 # ingesting user-input arguments
 args = parser.parse_args()
 model = args.model
 videos_path = args.videos_path
+track = args.track
+
+track = track.lower() == 'true' # convert to boolean, accepting 'True' or 'true' as input
 
 # identify and set model paths
 def find_models(path):
@@ -96,6 +100,10 @@ echo "Full path to mp4: $path_var"
 echo "Centroid model path: {centroid_model}"
 echo "Centered instance model path: {centered_model}"
 echo "Output path: {videos_path}/$name_var.predictions.slp"
+"""
+
+if track: # if the user wants to do tracking
+    script += f"""
 echo "Output path: {videos_path}/$name_var.tracks.slp"
 echo "Output path: {videos_path}/$name_var.tracks.json"
 
@@ -103,6 +111,12 @@ sleap-track $path_var --verbosity rich -m {centroid_model} -m {centered_model} -
 sleap-track --tracking.tracker simple --verbosity rich -o {videos_path}/$name_var.tracks.slp {videos_path}/$name_var.predictions.slp
 sleap-convert {videos_path}/$name_var.tracks.slp -o {videos_path}/$name_var.tracks.json --format json
 """
+else: # if the user doesn't want to do tracking
+    script += f"""
+sleap-track $path_var --verbosity rich -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
+sleap-convert {videos_path}/$name_var.predictions.slp -o {videos_path}/$name_var.predictions.json --format json
+"""
+
 
 # Create a temporary file to hold the SBATCH script
 with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_script:
@@ -162,9 +176,16 @@ def is_job_completed(job_id):
 check_job_completed(job_id)
 
 # convert tracking JSONs to CSVs
-def process_tracks_json(videos_path, names, skel_parts):
+def process_tracks_json(videos_path, names, skel_parts, track):
     for name in names:
-        with open(f'{videos_path}/{name}.tracks.json', 'r') as file:
+        if track:
+            json_file = f'{videos_path}/{name}.tracks.json'
+            csv_file = f'{videos_path}/{name}.tracks.csv'
+        else:
+            json_file = f'{videos_path}/{name}.predictions.json'
+            csv_file = f'{videos_path}/{name}.predictions.csv'
+
+        with open(json_file, 'r') as file:
             data = json.load(file)
 
         data_labels = data['labels']
@@ -173,7 +194,7 @@ def process_tracks_json(videos_path, names, skel_parts):
         columns = ['track_id', 'frame'] + [f'{coord}_{part}' for part in skel_parts for coord in ['x', 'y', 'score']]
 
         # Open a CSV file to write to
-        with open(f'{videos_path}/{name}.tracks.csv', mode='w', newline='') as file:
+        with open(csv_file, mode='w', newline='') as file:
             writer = csv.writer(file)
             
             # Write the header row
@@ -202,4 +223,4 @@ def process_tracks_json(videos_path, names, skel_parts):
                         row.extend([coords[part]['x'], coords[part]['y'], coords[part]['score']])
                     writer.writerow(row)
 
-process_tracks_json(videos_path, names, skel_parts)
+process_tracks_json(videos_path, names, skel_parts, track)
