@@ -119,6 +119,8 @@ sleap-convert {videos_path}/$name_var.tracks.slp -o {videos_path}/$name_var.trac
 """
 else: # if the user doesn't want to do tracking
     script += f"""
+echo "Output path: {videos_path}/$name_var.predictions.json"
+
 sleap-track $path_var --verbosity rich{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
 sleap-convert {videos_path}/$name_var.predictions.slp -o {videos_path}/$name_var.predictions.json --format json
 """
