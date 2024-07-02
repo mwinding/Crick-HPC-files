@@ -10,13 +10,11 @@ import csv
 parser = argparse.ArgumentParser(description='sleap_inference: batch inference using sleap models on NEMO')
 parser.add_argument('-m', '--model', dest='model', action='store', type=str, required=True, help='type of model')
 parser.add_argument('-p', '--videos-path', dest='videos_path', action='store', type=str, default=None, help='path to ip_address list')
-parser.add_argument('-s', '--skeleton-parts', dest='skel_parts', action='store', type=str, nargs='+', default=None, help='all node names in SLEAP skeleton')
 
 # ingesting user-input arguments
 args = parser.parse_args()
 model = args.model
 videos_path = args.videos_path
-skel_parts = args.skel_parts
 
 # identify and set model paths
 def find_models(path):
@@ -39,9 +37,17 @@ def find_models(path):
 
     return(centroid_model[0], centered_model[0])
 
-if model == 'sideview': path = '/camp/lab/windingm/home/shared/models/sideview/active/'
-if model == 'topdown': path = '/camp/lab/windingm/home/shared/models/topdown/active/'
-if model == 'pupae': path = '/camp/lab/windingm/home/shared/models/pupae/active/'
+if model == 'sideview': 
+    path = '/camp/lab/windingm/home/shared/models/sideview/active/'
+    skel_parts = ['head', 'mouthhooks', 'body', 'tail', 'spiracle']
+
+if model == 'topdown': 
+    path = '/camp/lab/windingm/home/shared/models/topdown/active/'
+    skel_parts = ['head', 'body', 'tail']
+
+if model == 'pupae': 
+    path = '/camp/lab/windingm/home/shared/models/pupae/active/'
+    skel_parts = ['head', 'body', 'tail']
 
 centroid_model, centered_model = find_models(path)
 
