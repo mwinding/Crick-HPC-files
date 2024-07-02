@@ -8,17 +8,42 @@ import csv
 
 # pulling user-input variables from command line
 parser = argparse.ArgumentParser(description='sleap_inference: batch inference using sleap models on NEMO')
-parser.add_argument('-m1', '--centroid-model', dest='centroid_model', action='store', type=str, required=True, help='path to centroid model')
-parser.add_argument('-m2', '--centered-model', dest='centered_model', action='store', type=str, required=True, help='path to centered instance model')
+parser.add_argument('-m', '--model', dest='model', action='store', type=str, required=True, help='type of model')
 parser.add_argument('-p', '--videos-path', dest='videos_path', action='store', type=str, default=None, help='path to ip_address list')
 parser.add_argument('-s', '--skeleton-parts', dest='skel_parts', action='store', type=str, nargs='+', default=None, help='all node names in SLEAP skeleton')
 
 # ingesting user-input arguments
 args = parser.parse_args()
-centroid_model = args.centroid_model
-centered_model = args.centered_model
+model = args.model
 videos_path = args.videos_path
 skel_parts = args.skel_parts
+
+# identify and set model paths
+def find_models(path):
+    centroid_model = []
+    centered_model = []
+
+    for root, dirs, files in os.walk(path):
+        for dir_name in dirs:
+            full_path = os.path.join(root, dir_name)
+            if '.centroid' in dir_name:
+                full_path = full_path + '/training_config.json'
+                centroid_model.append(full_path)
+            elif '.centered_instance' in dir_name:
+                full_path = full_path + '/training_config.json'
+                centered_model.append(full_path)
+
+    if(len(centroid_model)>1 and len(centered_model)>1): raise Exception(f"Multiple centroid and centered models detected! \nInvestigate in this directory: \n{path}")
+    if(len(centroid_model)>1): raise Exception(f"Multiple centroid models detected! \nInvestigate in this directory: \n{path}")
+    if(len(centered_model)>1): raise Exception(f"Multiple centered models detected! \nInvestigate in this directory: \n{path}")
+
+    return(centroid_model[0], centered_model[0])
+
+if model == 'sideview': path = '/camp/lab/windingm/home/shared/models/sideview/active/'
+if model == 'topdown': path = '/camp/lab/windingm/home/shared/models/topdown/active/'
+if model == 'pupae': path = '/camp/lab/windingm/home/shared/models/pupae/active/'
+
+centroid_model, centered_model = find_models(path)
 
 # identify paths and filenames of all .mp4s in folder
 if(os.path.isdir(videos_path)):
