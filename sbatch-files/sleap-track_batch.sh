@@ -1,8 +1,8 @@
 #!/bin/bash
-# Usage: sbatch --export=MODEL="sideview",PARTS="body_part1 body_part2 ..." sleap-track_batch.sh
+# Usage: sbatch --export=MODEL="sideview" sleap-track_batch.sh
 
 # *** MAKE SURE TO USE A REMOTELY-TRAINED MODEL!!!! ***
-# we have experienced many bugs with locally trained models running remotely...
+# we have experienced issues with locally trained models running remotely...
 
 #SBATCH --job-name=slp-master
 #SBATCH --ntasks=1
