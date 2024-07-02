@@ -1,5 +1,6 @@
 #!/bin/bash
-# Usage: sbatch --export=MODEL="sideview",TRACK="True" sleap-track_batch.sh
+# Usage: sbatch --export=MODEL="sideview" sleap-track_batch.sh
+# optional parameters: sbatch --export=MODEL="sideview",TRACK="False",FRAMES="0-10" sleap-track_batch.sh
 
 # *** MAKE SURE TO USE A REMOTELY-TRAINED MODEL!!!! ***
 # we have experienced issues with locally trained models running remotely...
@@ -19,16 +20,21 @@ source /camp/apps/eb/software/Anaconda/conda.env.sh
 
 DIR=$(pwd)
 
-# Set TRACK to True if it is not entered by user
+# Set TRACK to True if not entered by user
 : ${TRACK:='True'}
+
+# Set FRAMES to all if not entered by user
+: ${FRAMES:='all'}
 
 echo "model type: $MODEL"
 echo "videos directory path: $DIR"
 echo "track animals: $TRACK"
+echo "frames: $FRAMES"
 
 conda activate sleap
 
 # run python script
 # save output to log file in case there is an issue
-cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-track_batch.py -m "$MODEL" -p "$DIR" -t "$TRACK"" # adding -u makes sure the python_output.log is dynamically written to
+# adding -u makes sure the python_output.log is dynamically written to
+cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-track_batch.py -m "$MODEL" -p "$DIR" -t "$TRACK" -f "$FRAMES"" 
 eval $cmd > python_output.log 2>&1
