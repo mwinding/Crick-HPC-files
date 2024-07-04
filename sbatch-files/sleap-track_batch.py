@@ -115,14 +115,14 @@ echo "Output path: {videos_path}/$name_var.tracks.json"
 
 sleap-track $path_var --verbosity rich{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
 sleap-track --tracking.tracker simple --verbosity rich -o {videos_path}/$name_var.tracks.slp {videos_path}/$name_var.predictions.slp
-sleap-convert {videos_path}/$name_var.tracks.slp -o {videos_path}/$name_var.tracks.json --format json
+sleap-convert {videos_path}/$name_var.tracks.slp -o {videos_path}/$name_var.tracks.json --format analysis
 """
 else: # if the user doesn't want to do tracking
     script += f"""
 echo "Output path: {videos_path}/$name_var.predictions.json"
 
 sleap-track $path_var --verbosity rich{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
-sleap-convert {videos_path}/$name_var.predictions.slp -o {videos_path}/$name_var.predictions.json --format json
+sleap-convert {videos_path}/$name_var.predictions.slp -o {videos_path}/$name_var.predictions.json --format analysis
 """
 
 
@@ -136,7 +136,7 @@ process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, st
 
 # delete the temporary sbatch file after submission
 os.unlink(tmp_script_path)
-
+'''
 # Check the result and extract job ID from the output
 if process.returncode == 0:
     job_id_output = process.stdout.strip()
@@ -232,3 +232,4 @@ def process_tracks_json(videos_path, names, skel_parts, track):
                     writer.writerow(row)
 
 process_tracks_json(videos_path, names, skel_parts, track)
+'''
