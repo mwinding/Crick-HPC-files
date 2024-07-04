@@ -5,6 +5,8 @@ import subprocess
 import time
 import json
 import csv
+#import h5py
+#import pyarrow.feather as feather
 
 # pulling user-input variables from command line
 parser = argparse.ArgumentParser(description='sleap_inference: batch inference using sleap models on NEMO')
@@ -115,16 +117,15 @@ echo "Output path: {videos_path}/$name_var.tracks.json"
 
 sleap-track $path_var --verbosity rich{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
 sleap-track --tracking.tracker simple --verbosity rich -o {videos_path}/$name_var.tracks.slp {videos_path}/$name_var.predictions.slp
-sleap-convert {videos_path}/$name_var.tracks.slp -o {videos_path}/$name_var.tracks.json --format analysis
+sleap-convert {videos_path}/$name_var.tracks.slp -o {videos_path}/$name_var.tracks.h5 --format analysis
 """
 else: # if the user doesn't want to do tracking
     script += f"""
 echo "Output path: {videos_path}/$name_var.predictions.json"
 
 sleap-track $path_var --verbosity rich{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
-sleap-convert {videos_path}/$name_var.predictions.slp -o {videos_path}/$name_var.predictions.json --format analysis
+sleap-convert {videos_path}/$name_var.predictions.slp -o {videos_path}/$name_var.predictions.h5 --format analysis
 """
-
 
 # Create a temporary file to hold the SBATCH script
 with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_script:
@@ -136,7 +137,7 @@ process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, st
 
 # delete the temporary sbatch file after submission
 os.unlink(tmp_script_path)
-'''
+
 # Check the result and extract job ID from the output
 if process.returncode == 0:
     job_id_output = process.stdout.strip()
@@ -182,54 +183,56 @@ def is_job_completed(job_id):
     return all_completed
 
 check_job_completed(job_id)
-
+'''
 # convert tracking JSONs to CSVs
-def process_tracks_json(videos_path, names, skel_parts, track):
+def process_tracks_h5(videos_path, names, skel_parts, track):
     for name in names:
         if track:
-            json_file = f'{videos_path}/{name}.tracks.json'
+            h5_file = f'{videos_path}/{name}.tracks.h5'
             csv_file = f'{videos_path}/{name}.tracks.csv'
         else:
-            json_file = f'{videos_path}/{name}.predictions.json'
+            h5_file = f'{videos_path}/{name}.predictions.h5'
             csv_file = f'{videos_path}/{name}.predictions.csv'
 
-        with open(json_file, 'r') as file:
-            data = json.load(file)
+        with h5py.File(hdf5_file, 'r') as hdf5:
+            data = hdf5['tracks'][:].T
 
-        data_labels = data['labels']
+            # Generate column names based on body parts
+            columns = ['track_id', 'frame'] + [f'{coord}_{part}' for part in skel_parts for coord in ['x', 'y', 'score']]
 
-        # Generate column names based on body parts
-        columns = ['track_id', 'frame'] + [f'{coord}_{part}' for part in skel_parts for coord in ['x', 'y', 'score']]
+            df = pd.DataFrame(data, columns=columns)
 
-        # Open a CSV file to write to
-        with open(csv_file, mode='w', newline='') as file:
-            writer = csv.writer(file)
             
-            # Write the header row
-            writer.writerow(columns)
+            # # Open a CSV file to write to
+            # with open(csv_file, mode='w', newline='') as file:
+            #     writer = csv.writer(file)
+                
+            #     # Write the header row
+            #     writer.writerow(columns)
+                
+            #     # Loop through each frame in the data
+            #     for frame in data_labels:
+            #         video_id = frame['video']
+            #         frame_idx = frame['frame_idx']
+
+            #         # Loop through each instance in the frame
+            #         for instance in frame['_instances']:
+            #             track_id = instance['track']
+
+            #             # Initialize dictionary to store coordinates and scores
+            #             coords = {part: {'x': None, 'y': None, 'score': None} for part in skel_parts}
+
+            #             # Loop through each point to assign coordinates and scores
+            #             for point_id, point_details in instance['_points'].items():
+            #                 part_name = skel_parts[int(point_id)]
+            #                 coords[part_name] = {'x': point_details['x'], 'y': point_details['y'], 'score': point_details['score']}
+                        
+            #             # Write row data
+            #             row = [track_id, frame_idx]
+            #             for part in skel_parts:
+            #                 row.extend([coords[part]['x'], coords[part]['y'], coords[part]['score']])
+            #             writer.writerow(row)
             
-            # Loop through each frame in the data
-            for frame in data_labels:
-                video_id = frame['video']
-                frame_idx = frame['frame_idx']
-
-                # Loop through each instance in the frame
-                for instance in frame['_instances']:
-                    track_id = instance['track']
-
-                    # Initialize dictionary to store coordinates and scores
-                    coords = {part: {'x': None, 'y': None, 'score': None} for part in skel_parts}
-
-                    # Loop through each point to assign coordinates and scores
-                    for point_id, point_details in instance['_points'].items():
-                        part_name = skel_parts[int(point_id)]
-                        coords[part_name] = {'x': point_details['x'], 'y': point_details['y'], 'score': point_details['score']}
-                    
-                    # Write row data
-                    row = [track_id, frame_idx]
-                    for part in skel_parts:
-                        row.extend([coords[part]['x'], coords[part]['y'], coords[part]['score']])
-                    writer.writerow(row)
 
 process_tracks_json(videos_path, names, skel_parts, track)
 '''
