@@ -223,4 +223,4 @@ def process_tracks_h5_to_feather(videos_path, names, skel_parts, track):
             # Save the DataFrame to a Feather file
             df.to_feather(feather_file)
 
-process_tracks_json(videos_path, names, skel_parts, track)
+process_tracks_h5_to_feather(videos_path, names, skel_parts, track)
