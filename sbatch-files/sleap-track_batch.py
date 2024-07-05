@@ -5,8 +5,8 @@ import subprocess
 import time
 import json
 import csv
-#import h5py
-#import pyarrow.feather as feather
+import h5py
+import pyarrow.feather as feather
 
 # pulling user-input variables from command line
 parser = argparse.ArgumentParser(description='sleap_inference: batch inference using sleap models on NEMO')
