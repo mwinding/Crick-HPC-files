@@ -7,6 +7,8 @@ import json
 import csv
 import h5py
 import pyarrow.feather as feather
+import pandas as pd
+from sleap.io.format import read
 
 # pulling user-input variables from command line
 parser = argparse.ArgumentParser(description='sleap_inference: batch inference using sleap models on NEMO')
@@ -115,7 +117,7 @@ if track: # if the user wants to do tracking
 echo "Output path: {videos_path}/$name_var.tracks.slp"
 echo "Output path: {videos_path}/$name_var.tracks.h5"
 
-sleap-track $path_var --verbosity rich{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
+sleap-track $path_var --verbosity --batch_size 64 rich{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
 sleap-track --tracking.tracker simple --verbosity rich -o {videos_path}/$name_var.tracks.slp {videos_path}/$name_var.predictions.slp
 sleap-convert {videos_path}/$name_var.tracks.slp -o {videos_path}/$name_var.tracks.h5 --format analysis
 """
@@ -123,8 +125,7 @@ else: # if the user doesn't want to do tracking
     script += f"""
 echo "Output path: {videos_path}/$name_var.predictions.h5"
 
-sleap-track $path_var --verbosity rich{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
-sleap-convert {videos_path}/$name_var.predictions.slp -o {videos_path}/$name_var.predictions.h5 --format analysis
+sleap-track $path_var --verbosity --batch_size 64 rich{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
 """
 
 # Create a temporary file to hold the SBATCH script
@@ -184,8 +185,32 @@ def is_job_completed(job_id):
 
 check_job_completed(job_id)
 
-# convert tracking JSONs to CSVs
-def process_tracks_h5_to_feather(videos_path, names, skel_parts, track):
+# convert .slp to .feather
+def slp_to_feather(videos_path, names, skel_parts, track):
+    for name in names:
+        if track:
+            file_path = f'{videos_path}/{name}.tracks.slp'
+            feather_file = f'{videos_path}/{name}.tracks.feather'
+        else:
+            file_path = f'{videos_path}/{name}.predictions.slp'
+            feather_file = f'{videos_path}/{name}.predictions.feather'
+
+    label_obj = read(file_path, for_object='labels')
+
+    data = []
+    for i, frame in enumerate(label_obj.labeled_frames):
+        for j, instance in enumerate(frame._instances):
+            data.append([j] + [i] + list(instance.points_and_scores_array.flatten()))
+
+    columns = ['track_id', 'frame']
+    for part in skel_parts:
+        columns.extend([f'x_{part}', f'y_{part}', f'score_{part}'])
+
+    df = pd.DataFrame(data, columns = columns)
+    df.to_feather(feather_file)
+
+# convert tracking .h5 to .feather
+def h5_to_feather(videos_path, names, skel_parts, track):
     for name in names:
         if track:
             h5_file = f'{videos_path}/{name}.tracks.h5'
@@ -223,4 +248,5 @@ def process_tracks_h5_to_feather(videos_path, names, skel_parts, track):
             # Save the DataFrame to a Feather file
             df.to_feather(feather_file)
 
-process_tracks_h5_to_feather(videos_path, names, skel_parts, track)
+if track: h5_to_feather(videos_path, names, skel_parts, track)
+else: slp_to_feather(videos_path, names, skel_parts, track)
