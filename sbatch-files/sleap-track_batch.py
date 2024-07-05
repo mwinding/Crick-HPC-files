@@ -117,14 +117,14 @@ echo "Output path: {videos_path}/$name_var.tracks.h5"
 
 sleap-track $path_var --verbosity rich{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
 sleap-track --tracking.tracker simple --verbosity rich -o {videos_path}/$name_var.tracks.slp {videos_path}/$name_var.predictions.slp
-sleap-convert {videos_path}/$name_var.tracks.slp -o {videos_path}/$name_var.tracks.csv --format analysis
+sleap-convert {videos_path}/$name_var.tracks.slp -o {videos_path}/$name_var.tracks.h5 --format analysis
 """
 else: # if the user doesn't want to do tracking
     script += f"""
 echo "Output path: {videos_path}/$name_var.predictions.h5"
 
 sleap-track $path_var --verbosity rich{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
-sleap-convert {videos_path}/$name_var.predictions.slp -o {videos_path}/$name_var.predictions.csv --format analysis
+sleap-convert {videos_path}/$name_var.predictions.slp -o {videos_path}/$name_var.predictions.h5 --format analysis
 """
 
 # Create a temporary file to hold the SBATCH script
@@ -183,56 +183,44 @@ def is_job_completed(job_id):
     return all_completed
 
 check_job_completed(job_id)
-'''
+
 # convert tracking JSONs to CSVs
-def process_tracks_h5(videos_path, names, skel_parts, track):
+def process_tracks_h5_to_feather(videos_path, names, skel_parts, track):
     for name in names:
         if track:
             h5_file = f'{videos_path}/{name}.tracks.h5'
-            csv_file = f'{videos_path}/{name}.tracks.csv'
+            feather_file = f'{videos_path}/{name}.tracks.feather'
         else:
             h5_file = f'{videos_path}/{name}.predictions.h5'
-            csv_file = f'{videos_path}/{name}.predictions.csv'
+            feather_file = f'{videos_path}/{name}.predictions.feather'
 
-        with h5py.File(hdf5_file, 'r') as hdf5:
+        with h5py.File(h5_file, 'r') as hdf5:
             data = hdf5['tracks'][:].T
+            scores = hdf5['tracking_scores'][:]
 
-            # Generate column names based on body parts
-            columns = ['track_id', 'frame'] + [f'{coord}_{part}' for part in skel_parts for coord in ['x', 'y', 'score']]
+            # Generate column names based on body parts, identities, and scores
+            columns = ['track_id', 'frame']
+            for part in skel_parts:
+                columns.extend([f'x_{part}', f'y_{part}', f'score_{part}'])
 
-            df = pd.DataFrame(data, columns=columns)
+            # Create a list to hold all rows of data
+            all_rows = []
 
-            
-            # # Open a CSV file to write to
-            # with open(csv_file, mode='w', newline='') as file:
-            #     writer = csv.writer(file)
-                
-            #     # Write the header row
-            #     writer.writerow(columns)
-                
-            #     # Loop through each frame in the data
-            #     for frame in data_labels:
-            #         video_id = frame['video']
-            #         frame_idx = frame['frame_idx']
+            # Loop through each frame
+            for frame_idx in range(data.shape[0]):
+                # Loop through each identity
+                for identity_idx in range(data.shape[3]):
+                    row = [identity_idx, frame_idx]
+                    for part_idx in range(data.shape[1]):
+                        x, y = data[frame_idx, part_idx, :, identity_idx]
+                        score = scores[frame_idx, part_idx + 1] if part_idx < len(skel_parts) else np.nan  # Adjust index to skip the first score
+                        row.extend([x, y, score])
+                    all_rows.append(row)
 
-            #         # Loop through each instance in the frame
-            #         for instance in frame['_instances']:
-            #             track_id = instance['track']
+            # Convert the list to a DataFrame
+            df = pd.DataFrame(all_rows, columns=columns)
 
-            #             # Initialize dictionary to store coordinates and scores
-            #             coords = {part: {'x': None, 'y': None, 'score': None} for part in skel_parts}
-
-            #             # Loop through each point to assign coordinates and scores
-            #             for point_id, point_details in instance['_points'].items():
-            #                 part_name = skel_parts[int(point_id)]
-            #                 coords[part_name] = {'x': point_details['x'], 'y': point_details['y'], 'score': point_details['score']}
-                        
-            #             # Write row data
-            #             row = [track_id, frame_idx]
-            #             for part in skel_parts:
-            #                 row.extend([coords[part]['x'], coords[part]['y'], coords[part]['score']])
-            #             writer.writerow(row)
-            
+            # Save the DataFrame to a Feather file
+            df.to_feather(feather_file)
 
 process_tracks_json(videos_path, names, skel_parts, track)
-'''
