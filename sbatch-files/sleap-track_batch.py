@@ -239,7 +239,11 @@ def h5_to_feather(videos_path, names, skel_parts, job):
                     row = [identity_idx, frame_idx]
                     for part_idx in range(data.shape[1]):
                         x, y = data[frame_idx, part_idx, :, identity_idx]
+                        x = x.round(2).astype('float32')
+                        y = y.round(2).astype('float32')
+
                         score = scores[frame_idx, part_idx + 1] if part_idx < len(skel_parts) else np.nan  # Adjust index to skip the first score
+                        score = score.round(2).astype('float32')
                         row.extend([x, y, score])
                     all_rows.append(row)
 
