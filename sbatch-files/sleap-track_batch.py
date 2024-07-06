@@ -14,17 +14,15 @@ from sleap.io.format import read
 parser = argparse.ArgumentParser(description='sleap_inference: batch inference using sleap models on NEMO')
 parser.add_argument('-m', '--model', dest='model', action='store', type=str, required=True, help='type of model')
 parser.add_argument('-p', '--videos-path', dest='videos_path', action='store', type=str, default=None, help='path to ip_address list')
-parser.add_argument('-t', '--track', dest='track', action='store', type=str, default=None, help='track animals?')
+parser.add_argument('-j', '--job', dest='job', action='store', type=str, default=None, help='p=predict animal locations, t=track animals, c=convert output file to feather')
 parser.add_argument('-f', '--frames', dest='frames', action='store', type=str, default='all', help='track animals?')
 
 # ingesting user-input arguments
 args = parser.parse_args()
 model = args.model
 videos_path = args.videos_path
-track = args.track
+job = args.job
 frames = args.frames
-
-track = track.lower() == 'true' # convert to boolean, accepting 'True' or 'true' as input
 
 # determine if all frames should be processed or just some
 if frames=='all': frame_input = ''
@@ -112,20 +110,22 @@ echo "Centered instance model path: {centered_model}"
 echo "Output path: {videos_path}/$name_var.predictions.slp"
 """
 
-if track: # if the user wants to do tracking
+if 'p' in job:
+    script += f"""
+echo "Output path: {videos_path}/$name_var.predictions.h5"
+sleap-track $path_var --verbosity rich --batch_size 64{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
+"""
+
+if 't' in job:
     script += f"""
 echo "Output path: {videos_path}/$name_var.tracks.slp"
 echo "Output path: {videos_path}/$name_var.tracks.h5"
-
-sleap-track $path_var --verbosity rich --batch_size 64{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
 sleap-track --tracking.tracker simple --verbosity rich -o {videos_path}/$name_var.tracks.slp {videos_path}/$name_var.predictions.slp
-sleap-convert {videos_path}/$name_var.tracks.slp -o {videos_path}/$name_var.tracks.h5 --format analysis
 """
-else: # if the user doesn't want to do tracking
-    script += f"""
-echo "Output path: {videos_path}/$name_var.predictions.h5"
 
-sleap-track $path_var --verbosity rich --batch_size 64{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
+if ('c' in job) and ('t' in job):
+    script += f"""
+sleap-convert {videos_path}/$name_var.tracks.slp -o {videos_path}/$name_var.tracks.h5 --format analysis
 """
 
 # Create a temporary file to hold the SBATCH script
@@ -248,5 +248,6 @@ def h5_to_feather(videos_path, names, skel_parts, track):
             # Save the DataFrame to a Feather file
             df.to_feather(feather_file)
 
-if track: h5_to_feather(videos_path, names, skel_parts, track)
-else: slp_to_feather(videos_path, names, skel_parts, track)
+if 'c' in job:
+    if 't' in job: h5_to_feather(videos_path, names, skel_parts, track)
+    else: slp_to_feather(videos_path, names, skel_parts, track)

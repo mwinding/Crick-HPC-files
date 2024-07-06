@@ -26,9 +26,12 @@ DIR=$(pwd)
 # Set FRAMES to all if not entered by user
 : ${FRAMES:='all'}
 
+# Set JOB to ptc if not entered by user; p = predict, t = track, c = convert to feather output
+: ${JOB:='ptc'}
+
 echo "model type: $MODEL"
 echo "videos directory path: $DIR"
-echo "track animals: $TRACK"
+echo "track animals: $JOB"
 echo "frames: $FRAMES"
 
 conda activate sleap
@@ -37,5 +40,5 @@ conda activate sleap
 # run python script
 # save output to log file in case there is an issue
 # adding -u makes sure the python_output.log is dynamically written to
-cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-track_batch.py -m "$MODEL" -p "$DIR" -t "$TRACK" -f "$FRAMES"" 
+cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-track_batch.py -m "$MODEL" -p "$DIR" -j "$JOB" -f "$FRAMES"" 
 eval $cmd > python_output.log 2>&1
