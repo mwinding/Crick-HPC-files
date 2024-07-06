@@ -7,9 +7,9 @@
 
 #SBATCH --job-name=slp-master
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=16
 #SBATCH --partition=ncpu
-#SBATCH --mem=12G
+#SBATCH --mem=200G
 #SBATCH --time=48:00:00
 #SBATCH --mail-user=$(whoami)@crick.ac.uk
 #SBATCH --mail-type=FAIL
@@ -32,6 +32,7 @@ echo "track animals: $TRACK"
 echo "frames: $FRAMES"
 
 conda activate sleap
+# conda activate /camp/lab/windingm/home/shared/conda/.../.
 
 # run python script
 # save output to log file in case there is an issue
