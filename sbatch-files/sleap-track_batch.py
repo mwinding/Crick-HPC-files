@@ -213,6 +213,7 @@ def slp_to_feather(videos_path, names, skel_parts, job):
 # convert tracking .h5 to .feather
 def h5_to_feather(videos_path, names, skel_parts, job):
     for name in names:
+    print(f'converting {name} to feather')
         if 't' in job:
             h5_file = f'{videos_path}/{name}.tracks.h5'
             feather_file = f'{videos_path}/{name}.tracks.feather'
