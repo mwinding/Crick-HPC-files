@@ -31,7 +31,7 @@ DIR=$(pwd)
 
 echo "model type: $MODEL"
 echo "videos directory path: $DIR"
-echo "track animals: $JOB"
+echo "jobs, p=prediction, t=track, c=convert to feather: $JOB"
 echo "frames: $FRAMES"
 
 conda activate sleap
