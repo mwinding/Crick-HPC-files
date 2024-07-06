@@ -186,9 +186,9 @@ def is_job_completed(job_id):
 check_job_completed(job_id)
 
 # convert .slp to .feather
-def slp_to_feather(videos_path, names, skel_parts, track):
+def slp_to_feather(videos_path, names, skel_parts, job):
     for name in names:
-        if track:
+        if 't' in job:
             file_path = f'{videos_path}/{name}.tracks.slp'
             feather_file = f'{videos_path}/{name}.tracks.feather'
         else:
@@ -210,9 +210,9 @@ def slp_to_feather(videos_path, names, skel_parts, track):
     df.to_feather(feather_file)
 
 # convert tracking .h5 to .feather
-def h5_to_feather(videos_path, names, skel_parts, track):
+def h5_to_feather(videos_path, names, skel_parts, job):
     for name in names:
-        if track:
+        if 't' in job:
             h5_file = f'{videos_path}/{name}.tracks.h5'
             feather_file = f'{videos_path}/{name}.tracks.feather'
         else:
@@ -249,5 +249,5 @@ def h5_to_feather(videos_path, names, skel_parts, track):
             df.to_feather(feather_file)
 
 if 'c' in job:
-    if 't' in job: h5_to_feather(videos_path, names, skel_parts, track)
-    else: slp_to_feather(videos_path, names, skel_parts, track)
+    if 't' in job: h5_to_feather(videos_path, names, skel_parts, job)
+    else: slp_to_feather(videos_path, names, skel_parts, job)
