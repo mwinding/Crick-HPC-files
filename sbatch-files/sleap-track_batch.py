@@ -8,6 +8,7 @@ import csv
 import h5py
 import pyarrow.feather as feather
 import pandas as pd
+import numpy as np
 from sleap.io.format import read
 
 # pulling user-input variables from command line
@@ -240,11 +241,11 @@ def h5_to_feather(videos_path, names, skel_parts, job):
                     row = [identity_idx, frame_idx]
                     for part_idx in range(data.shape[1]):
                         x, y = data[frame_idx, part_idx, :, identity_idx]
-                        x = x.round(2).astype('float32')
-                        y = y.round(2).astype('float32')
+                        x = np.round(x, 2).astype('float32')
+                        y = np.round(y, 2).astype('float32')
 
                         score = scores[frame_idx, part_idx + 1] if part_idx < len(skel_parts) else np.nan  # Adjust index to skip the first score
-                        score = score.round(2).astype('float32')
+                        score = np.round(score, 2).astype('float32')
                         row.extend([x, y, score])
                     all_rows.append(row)
 
