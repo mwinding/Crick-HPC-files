@@ -128,24 +128,6 @@ if ('c' in job) and ('t' in job):
 sleap-convert {videos_path}/$name_var.tracks.slp -o {videos_path}/$name_var.tracks.h5 --format analysis
 """
 
-# Create a temporary file to hold the SBATCH script
-with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_script:
-    tmp_script.write(script)
-    tmp_script_path = tmp_script.name
-
-# run the SBATCH script
-process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-# delete the temporary sbatch file after submission
-os.unlink(tmp_script_path)
-
-# Check the result and extract job ID from the output
-if process.returncode == 0:
-    job_id_output = process.stdout.strip()
-    print(f'\t{job_id_output}')
-
-    job_id = job_id_output.split()[-1]
-
 # wait until all jobs are done
 def check_job_completed(job_id, initial_wait=120, wait=120):
         seconds = initial_wait
@@ -183,7 +165,26 @@ def is_job_completed(job_id):
 
     return all_completed
 
-check_job_completed(job_id)
+if ('p' in job) or ('t' in job):
+    # Create a temporary file to hold the SBATCH script
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_script:
+        tmp_script.write(script)
+        tmp_script_path = tmp_script.name
+
+    # run the SBATCH script
+    process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    # delete the temporary sbatch file after submission
+    os.unlink(tmp_script_path)
+
+    # Check the result and extract job ID from the output
+    if process.returncode == 0:
+        job_id_output = process.stdout.strip()
+        print(f'\t{job_id_output}')
+
+        job_id = job_id_output.split()[-1]
+    
+    check_job_completed(job_id)
 
 # convert .slp to .feather
 def slp_to_feather(videos_path, names, skel_parts, job):
