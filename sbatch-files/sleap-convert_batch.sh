@@ -14,16 +14,16 @@
 #SBATCH --mail-user=$(whoami)@crick.ac.uk
 #SBATCH --mail-type=FAIL
 
-#ml purge
-#ml Anaconda3/2023.09-0
-#source /camp/apps/eb/software/Anaconda/conda.env.sh
+ml purge
+ml Anaconda3/2023.09-0
+source /camp/apps/eb/software/Anaconda/conda.env.sh
 
 DIR=$(pwd)
 
 echo "model type: $MODEL"
 echo "videos directory path: $DIR"
 
-# conda activate sleap
+conda activate sleap
 # conda activate /camp/lab/windingm/home/shared/conda/.../.
 
 # run python script
