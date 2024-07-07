@@ -203,6 +203,8 @@ ml Anaconda3/2023.09-0
 ml cuDNN/8.2.1.32-CUDA-11.3.1
 source /camp/apps/eb/software/Anaconda/conda.env.sh
 
+source activate sleap
+
 # Debugging information
 echo "SLURM job id: $SLURM_JOB_ID"
 echo "SLURM task id: $SLURM_ARRAY_TASK_ID"
@@ -211,7 +213,7 @@ echo "Model path: {model}"
 echo "Running on host: $(hostname)"
 echo "Active conda environment: $(conda info --envs | grep \*)"
 echo "Installed packages in conda environment:"
-conda list
+source list
 
 # convert ip_string to shell array
 IFS=' ' read -r -a path_array <<< "{video_file_paths_joined}"
@@ -224,7 +226,6 @@ echo "Processing slp: $name_var.predictions.slp"
 echo "Full path to slp: {videos_path}.predictions.slp"
 echo "Output path: {videos_path}/$name_var.predictions.feather"
 
-conda activate sleap
 cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-convert_slp.py -p "{videos_path}/$name_var.predictions.slp" -m "{model}"" 
 echo "$cmd"
 eval $cmd > python_output_convert-slp.log 2>&1
