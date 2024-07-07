@@ -9,6 +9,7 @@ import h5py
 import pyarrow.feather as feather
 import pandas as pd
 import numpy as np
+from joblib import Parallel, delayed
 from tqdm import tqdm
 
 # pulling user-input variables from command line
