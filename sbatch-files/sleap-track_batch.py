@@ -9,7 +9,6 @@ import h5py
 import pyarrow.feather as feather
 import pandas as pd
 import numpy as np
-from sleap.io.format import read
 
 # pulling user-input variables from command line
 parser = argparse.ArgumentParser(description='sleap_inference: batch inference using sleap models on NEMO')
