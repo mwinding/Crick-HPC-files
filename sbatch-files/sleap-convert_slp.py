@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from sleap.io.format import read
 from joblib import Parallel, delayed
+from tqdm import tqdm
 
 # pulling user-input variables from command line
 parser = argparse.ArgumentParser(description='sleap_inference: convert .slp files to .feather on NEMO')
@@ -52,5 +53,5 @@ video_file_paths = [x.replace('.mp4', '.predictions.slp') for x in video_file_pa
 
 # Parallelize the conversion of .slp files to .feather files
 Parallel(n_jobs=-1)(
-    delayed(slp_to_feather)(path, skel_parts) for path in video_file_paths
+    delayed(slp_to_feather)(path, skel_parts) for path in tqdm(video_file_paths, desc="Processing .slp files")
 )
