@@ -205,6 +205,16 @@ source /camp/apps/eb/software/Anaconda/conda.env.sh
 
 conda activate sleap
 
+# Debugging information
+echo "SLURM job id: $SLURM_JOB_ID"
+echo "SLURM task id: $SLURM_ARRAY_TASK_ID"
+echo "Videos path: {videos_path}"
+echo "Model path: {model}"
+echo "Running on host: $(hostname)"
+echo "Active conda environment: $(conda info --envs | grep \*)"
+echo "Installed packages in conda environment:"
+conda list
+
 # convert ip_string to shell array
 IFS=' ' read -r -a path_array <<< "{video_file_paths_joined}"
 path_var="${{path_array[$SLURM_ARRAY_TASK_ID-1]}}"
@@ -213,8 +223,8 @@ IFS=' ' read -r -a name_array <<< "{names_joined}"
 name_var="${{name_array[$SLURM_ARRAY_TASK_ID-1]}}"
 
 echo "Processing slp: $name_var.predictions.slp"
-echo "Full path to slp: $path_var.predictions.slp"
-echo "Output path: {videos_path}/$name_var.predictions.slp"
+echo "Full path to slp: $name_var.predictions.slp"
+echo "Output path: {videos_path}/$name_var.predictions.feather"
 
 cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-convert_slp.py -p "{videos_path}/$name_var.predictions.slp" -m "{model}"" 
 eval $cmd > python_output_convert-slp.log 2>&1
