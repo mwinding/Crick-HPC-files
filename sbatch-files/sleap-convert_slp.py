@@ -22,6 +22,8 @@ path = args.path
 job = args.job
 model = args.model
 
+print('sleap-convert_slp.py started...')
+
 if model == 'sideview': skel_parts = ['head', 'mouthhooks', 'body', 'tail', 'spiracle']
 if model == 'topdown': skel_parts = ['head', 'body', 'tail']
 if model == 'pupae': skel_parts = ['head', 'body', 'tail']
