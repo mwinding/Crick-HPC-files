@@ -7,7 +7,7 @@
 
 #SBATCH --job-name=slp-master
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=32
 #SBATCH --partition=ncpu
 #SBATCH --mem=200G
 #SBATCH --time=48:00:00
