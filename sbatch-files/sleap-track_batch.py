@@ -9,6 +9,7 @@ import h5py
 import pyarrow.feather as feather
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
 
 # pulling user-input variables from command line
 parser = argparse.ArgumentParser(description='sleap_inference: batch inference using sleap models on NEMO')
@@ -186,6 +187,37 @@ if ('p' in job) or ('t' in job):
     
     check_job_completed(job_id)
 
+# convert .slp to .feather
+def slp_to_feather(file_path, skel_parts):
+
+    feather_file = file_path.replace('.slp', '.feather')
+    label_obj = read(file_path, for_object='labels')
+
+    data = []
+    for i, frame in enumerate(label_obj.labeled_frames):
+        for j, instance in enumerate(frame._instances):
+            array = [j] + [i] + list(instance.points_and_scores_array.flatten())
+            array = [np.round(x, 2).astype('float32') for x in array] # reduce size of data
+            data.append(array)
+
+    columns = ['track_id', 'frame']
+    for part in skel_parts:
+        columns.extend([f'x_{part}', f'y_{part}', f'score_{part}'])
+
+    df = pd.DataFrame(data, columns = columns)
+    df.to_feather(feather_file)
+
+# convert all .mp4s names to .slp names folder
+if 't' in job: video_file_paths = [x.replace('.mp4', '.tracks.slp') for x in video_file_paths]
+else: video_file_paths = [x.replace('.mp4', '.predictions.slp') for x in video_file_paths]
+
+# Parallelize the conversion of .slp files to .feather files
+if 'c' in job:
+    Parallel(n_jobs=-1)(
+        delayed(slp_to_feather)(path, skel_parts) for path in tqdm(video_file_paths, desc="Processing .slp files")
+    )
+
+'''
 # sbatch script to run the array job, to run batch predictions with SLEAP on all videos
 convert_script = f"""#!/bin/bash
 #SBATCH --job-name=slp-convert
@@ -257,7 +289,7 @@ if 'c' in job:
         job_id = job_id_output.split()[-1]
 
     check_job_completed(job_id)
-
+'''
 # # convert .slp to .feather
 # def slp_to_feather(videos_path, names, skel_parts, job):
 #     for name in names:
