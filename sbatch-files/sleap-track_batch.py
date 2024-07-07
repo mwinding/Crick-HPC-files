@@ -226,7 +226,7 @@ echo "Full path to slp: {videos_path}.predictions.slp"
 echo "Output path: {videos_path}/$name_var.predictions.feather"
 
 cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-convert_slp.py -p "{videos_path}/$name_var.predictions.slp" -m "{model}"" 
-eval $cmd > python_output_convert-slp.log 2>&1
+eval $cmd > python_output_convert-slp_%A_%a.log 2>&1
 """
 
 print(num_videos)
@@ -234,9 +234,9 @@ print(video_file_paths_joined)
 print(names_joined)
 if 'c' in job:
     print('attempting convert job array...')
-    with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_script:
-        tmp_script.write(convert_script)
-        tmp_script_path = tmp_script.name
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_convert_script:
+        tmp_convert_script.write(convert_script)
+        tmp_script_path = tmp_convert_script.name
 
     # run the SBATCH script
     process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
