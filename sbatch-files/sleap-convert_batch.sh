@@ -29,5 +29,5 @@ conda activate sleap
 # run python script
 # save output to log file in case there is an issue
 # adding -u makes sure the python_output.log is dynamically written to
-cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-convert_slp.py -m "$MODEL" -p "$DIR"" 
+cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-convert_batch.py -m "$MODEL" -p "$DIR"" 
 eval $cmd > python_output_slp-convert.log 2>&1
