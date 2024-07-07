@@ -9,7 +9,7 @@ import h5py
 import pyarrow.feather as feather
 import pandas as pd
 import numpy as np
-import sleap
+from sleap.io.format import read
 
 # pulling user-input variables from command line
 parser = argparse.ArgumentParser(description='sleap_inference: convert .slp files to .feather on NEMO')
@@ -19,7 +19,6 @@ parser.add_argument('-m', '--model', dest='model', action='store', type=str, req
 # ingesting user-input arguments
 args = parser.parse_args()
 path = args.path
-job = args.job
 model = args.model
 
 print('sleap-convert_slp.py started...')
@@ -32,7 +31,7 @@ if model == 'pupae': skel_parts = ['head', 'body', 'tail']
 def slp_to_feather(file_path, skel_parts):
 
     feather_file = file_path.replace('.slp', '.feather')
-    label_obj = sleap.io.format.read(file_path, for_object='labels')
+    label_obj = read(file_path, for_object='labels')
 
     data = []
     for i, frame in enumerate(label_obj.labeled_frames):
