@@ -235,16 +235,21 @@ if 'c' in job:
     print('attempting convert job array...')
     with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_convert_script:
         tmp_convert_script.write(convert_script)
-        tmp_script_path = tmp_convert_script.name
+        tmp_convert_script_path = tmp_convert_script.name
 
     # run the SBATCH script
-    process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    process = subprocess.run(["sbatch", tmp_convert_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     print('job submitted')
     print(f"stdout: {process.stdout}")
     print(f"stderr: {process.stderr}")
     
     # delete the temporary sbatch file after submission
-    os.unlink(tmp_script_path)
+    os.unlink(tmp_convert_script_path)
+
+    # Check the result and extract job ID from the output
+    if process.returncode == 0:
+        job_id_output = process.stdout.strip()
+        print(f'\t{job_id_output}')
 
 # # convert .slp to .feather
 # def slp_to_feather(videos_path, names, skel_parts, job):
