@@ -216,7 +216,7 @@ echo "Processing slp: $name_var.predictions.slp"
 echo "Full path to slp: $path_var.predictions.slp"
 echo "Output path: {videos_path}/$name_var.predictions.slp"
 
-cmd="python -u /nemo/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-convert_slp.py -p "{videos_path}/$name_var.predictions.slp" -s "{skel_parts}"" 
+cmd="python -u /nemo/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-convert_slp.py -p "{videos_path}/$name_var.predictions.slp" -m "{model}"" 
 eval $cmd > python_output_convert-slp.log 2>&1
 """
 

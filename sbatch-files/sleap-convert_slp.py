@@ -14,13 +14,17 @@ from sleap.io.format import read
 # pulling user-input variables from command line
 parser = argparse.ArgumentParser(description='sleap_inference: convert .slp files to .feather on NEMO')
 parser.add_argument('-p', '--path', dest='path', action='store', type=str, default=None, help='path to slp file')
-parser.add_argument('-s', '--skel_parts', dest='skel_parts', action='store', type=str, default=None, help='array of body parts')
+parser.add_argument('-m', '--model', dest='model', action='store', type=str, required=True, help='type of model')
 
 # ingesting user-input arguments
 args = parser.parse_args()
 path = args.path
 job = args.job
-skel_parts = args.skel_parts
+model = args.model
+
+if model == 'sideview': skel_parts = ['head', 'mouthhooks', 'body', 'tail', 'spiracle']
+if model == 'topdown': skel_parts = ['head', 'body', 'tail']
+if model == 'pupae': skel_parts = ['head', 'body', 'tail']
 
 # convert .slp to .feather
 def slp_to_feather(file_path, skel_parts):
