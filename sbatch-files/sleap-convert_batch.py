@@ -85,7 +85,7 @@ IFS=' ' read -r -a name_array <<< "{names_joined}"
 name_var="${{name_array[$SLURM_ARRAY_TASK_ID-1]}}"
 
 echo "Processing slp: $name_var.predictions.slp"
-echo "Full path to slp: {videos_path}.predictions.slp"
+echo "Full path to slp: {videos_path}/$name_var.predictions.slp"
 echo "Output path: {videos_path}/$name_var.predictions.feather"
 
 cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-convert_slp.py -p "{videos_path}/$name_var.predictions.slp" -m "{model}"" 
@@ -109,4 +109,4 @@ print(f"stdout: {process.stdout}")
 print(f"stderr: {process.stderr}")
 
 # delete the temporary sbatch file after submission
-os.unlink(tmp_script_path)
+#os.unlink(tmp_script_path)
