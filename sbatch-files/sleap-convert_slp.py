@@ -1,3 +1,4 @@
+import os
 import argparse
 import pyarrow.feather as feather
 import pandas as pd
