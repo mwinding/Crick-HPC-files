@@ -1,6 +1,6 @@
 #!/bin/bash
-# Usage: sbatch --export=MODEL="sideview" sleap-track_batch.sh
-# optional parameters: sbatch --export=MODEL="sideview",TRACK="False",FRAMES="0-10" sleap-track_batch.sh
+# Usage: sbatch --export=MODEL="sideview" sleap-convert_batch.sh
+# optional parameters: sbatch --export=MODEL="sideview",TRACK="False",FRAMES="0-10" sleap-convert_batch.sh
 
 # *** MAKE SURE TO USE A REMOTELY-TRAINED MODEL!!!! ***
 # we have experienced issues with locally trained models running remotely...
@@ -29,5 +29,5 @@ conda activate sleap
 # run python script
 # save output to log file in case there is an issue
 # adding -u makes sure the python_output.log is dynamically written to
-cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-convert_slp.py -m "$MODEL" -p "$DIR"" 
+cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-convert_slp.py -m $MODEL -p $DIR"
 eval $cmd > python_output_slp-convert.log 2>&1
