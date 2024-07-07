@@ -187,74 +187,119 @@ if ('p' in job) or ('t' in job):
     
     check_job_completed(job_id)
 
-# convert .slp to .feather
-def slp_to_feather(videos_path, names, skel_parts, job):
-    for name in names:
-        if 't' in job:
-            file_path = f'{videos_path}/{name}.tracks.slp'
-            feather_file = f'{videos_path}/{name}.tracks.feather'
-        else:
-            file_path = f'{videos_path}/{name}.predictions.slp'
-            feather_file = f'{videos_path}/{name}.predictions.feather'
+# sbatch script to run the array job, to run batch predictions with SLEAP on all videos
+script = f"""#!/bin/bash
+#SBATCH --job-name=slp-convert
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=32
+#SBATCH --array=1-{num_videos}
+#SBATCH --partition=ncpu
+#SBATCH --mem=100G
+#SBATCH --time=48:00:00
+#SBATCH --mail-user=$(whoami)@crick.ac.uk
+#SBATCH --mail-type=FAIL
 
-    label_obj = read(file_path, for_object='labels')
+ml purge
+ml Anaconda3/2023.09-0
+ml cuDNN/8.2.1.32-CUDA-11.3.1
+source /camp/apps/eb/software/Anaconda/conda.env.sh
 
-    data = []
-    for i, frame in enumerate(label_obj.labeled_frames):
-        for j, instance in enumerate(frame._instances):
-            data.append([j] + [i] + list(instance.points_and_scores_array.flatten()))
+conda activate sleap
 
-    columns = ['track_id', 'frame']
-    for part in skel_parts:
-        columns.extend([f'x_{part}', f'y_{part}', f'score_{part}'])
+# convert ip_string to shell array
+IFS=' ' read -r -a path_array <<< "{video_file_paths_joined}"
+path_var="${{path_array[$SLURM_ARRAY_TASK_ID-1]}}"
 
-    df = pd.DataFrame(data, columns = columns)
-    df.to_feather(feather_file)
+IFS=' ' read -r -a name_array <<< "{names_joined}"
+name_var="${{name_array[$SLURM_ARRAY_TASK_ID-1]}}"
 
-# convert tracking .h5 to .feather
-def h5_to_feather(videos_path, names, skel_parts, job):
-    for name in names:
-        print(f'converting {name} to feather')
-        if 't' in job:
-            h5_file = f'{videos_path}/{name}.tracks.h5'
-            feather_file = f'{videos_path}/{name}.tracks.feather'
-        else:
-            h5_file = f'{videos_path}/{name}.predictions.h5'
-            feather_file = f'{videos_path}/{name}.predictions.feather'
+echo "Processing slp: $name_var.predictions.slp"
+echo "Full path to slp: $path_var.predictions.slp"
+echo "Output path: {videos_path}/$name_var.predictions.slp"
 
-        with h5py.File(h5_file, 'r') as hdf5:
-            data = hdf5['tracks'][:].T
-            scores = hdf5['tracking_scores'][:]
-
-            # Generate column names based on body parts, identities, and scores
-            columns = ['track_id', 'frame']
-            for part in skel_parts:
-                columns.extend([f'x_{part}', f'y_{part}', f'score_{part}'])
-
-            # Create a list to hold all rows of data
-            all_rows = []
-
-            # Loop through each frame
-            for frame_idx in range(data.shape[0]):
-                # Loop through each identity
-                for identity_idx in range(data.shape[3]):
-                    row = [identity_idx, frame_idx]
-                    for part_idx in range(data.shape[1]):
-                        x, y = data[frame_idx, part_idx, :, identity_idx]
-                        x = np.round(x, 2).astype('float32')
-                        y = np.round(y, 2).astype('float32')
-
-                        score = scores[frame_idx, part_idx + 1] if part_idx < len(skel_parts) else np.nan  # Adjust index to skip the first score
-                        score = np.round(score, 2).astype('float32')
-                        row.extend([x, y, score])
-                    all_rows.append(row)
-
-            # Convert the list to a DataFrame
-            df = pd.DataFrame(all_rows, columns=columns)
-
-            # Save the DataFrame to a Feather file
-            df.to_feather(feather_file)
+cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-convert_slp.py -p "{videos_path}/$name_var.predictions.slp" -s "{skel_parts}"" 
+eval $cmd > python_output_convert-slp.log 2>&1
+"""
 
 if 'c' in job:
-    if 't' in job: h5_to_feather(videos_path, names, skel_parts, job)
-    else: slp_to_feather(videos_path, names, skel_parts, job)
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_script:
+        tmp_script.write(script)
+        tmp_script_path = tmp_script.name
+
+        # run the SBATCH script
+        process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+        # delete the temporary sbatch file after submission
+        os.unlink(tmp_script_path)
+
+# # convert .slp to .feather
+# def slp_to_feather(videos_path, names, skel_parts, job):
+#     for name in names:
+#         if 't' in job:
+#             file_path = f'{videos_path}/{name}.tracks.slp'
+#             feather_file = f'{videos_path}/{name}.tracks.feather'
+#         else:
+#             file_path = f'{videos_path}/{name}.predictions.slp'
+#             feather_file = f'{videos_path}/{name}.predictions.feather'
+
+#     label_obj = read(file_path, for_object='labels')
+
+#     data = []
+#     for i, frame in enumerate(label_obj.labeled_frames):
+#         for j, instance in enumerate(frame._instances):
+#             data.append([j] + [i] + list(instance.points_and_scores_array.flatten()))
+
+#     columns = ['track_id', 'frame']
+#     for part in skel_parts:
+#         columns.extend([f'x_{part}', f'y_{part}', f'score_{part}'])
+
+#     df = pd.DataFrame(data, columns = columns)
+#     df.to_feather(feather_file)
+
+# # convert tracking .h5 to .feather
+# def h5_to_feather(videos_path, names, skel_parts, job):
+#     for name in names:
+#         print(f'converting {name} to feather')
+#         if 't' in job:
+#             h5_file = f'{videos_path}/{name}.tracks.h5'
+#             feather_file = f'{videos_path}/{name}.tracks.feather'
+#         else:
+#             h5_file = f'{videos_path}/{name}.predictions.h5'
+#             feather_file = f'{videos_path}/{name}.predictions.feather'
+
+#         with h5py.File(h5_file, 'r') as hdf5:
+#             data = hdf5['tracks'][:].T
+#             scores = hdf5['tracking_scores'][:]
+
+#             # Generate column names based on body parts, identities, and scores
+#             columns = ['track_id', 'frame']
+#             for part in skel_parts:
+#                 columns.extend([f'x_{part}', f'y_{part}', f'score_{part}'])
+
+#             # Create a list to hold all rows of data
+#             all_rows = []
+
+#             # Loop through each frame
+#             for frame_idx in range(data.shape[0]):
+#                 # Loop through each identity
+#                 for identity_idx in range(data.shape[3]):
+#                     row = [identity_idx, frame_idx]
+#                     for part_idx in range(data.shape[1]):
+#                         x, y = data[frame_idx, part_idx, :, identity_idx]
+#                         x = np.round(x, 2).astype('float32')
+#                         y = np.round(y, 2).astype('float32')
+
+#                         score = scores[frame_idx, part_idx + 1] if part_idx < len(skel_parts) else np.nan  # Adjust index to skip the first score
+#                         score = np.round(score, 2).astype('float32')
+#                         row.extend([x, y, score])
+#                     all_rows.append(row)
+
+#             # Convert the list to a DataFrame
+#             df = pd.DataFrame(all_rows, columns=columns)
+
+#             # Save the DataFrame to a Feather file
+#             df.to_feather(feather_file)
+
+# if 'c' in job:
+#     if 't' in job: h5_to_feather(videos_path, names, skel_parts, job)
+#     else: slp_to_feather(videos_path, names, skel_parts, job)
