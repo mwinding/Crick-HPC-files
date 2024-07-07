@@ -22,12 +22,20 @@ if model == 'sideview': skel_parts = ['head', 'mouthhooks', 'body', 'tail', 'spi
 if model == 'topdown': skel_parts = ['head', 'body', 'tail']
 if model == 'pupae': skel_parts = ['head', 'body', 'tail']
 
-# convert .slp to .feather
-# Process each frame
-def process_frame(frame, skel_parts):
+# Extracting data from frames for parallel processing
+def extract_frame_data(frame):
+    frame_idx = frame.frame_idx
+    instances_data = []
+    for instance in frame._instances:
+        instance_data = list(instance.points_and_scores_array.flatten())
+        instances_data.append(instance_data)
+    return frame_idx, instances_data
+
+# Processing each frame's data
+def process_frame_data(frame_idx, instances_data, skel_parts):
     data = []
-    for j, instance in enumerate(frame._instances):
-        array = [j] + [frame.frame_idx] + list(instance.points_and_scores_array.flatten())
+    for j, instance_data in enumerate(instances_data):
+        array = [j, frame_idx] + instance_data
         array = [np.round(x, 2).astype('float32') for x in array]  # reduce size of data
         data.append(array)
     return data
@@ -37,7 +45,14 @@ def slp_to_feather(file_path, skel_parts):
     feather_file = file_path.replace('.slp', '.feather')
     label_obj = read(file_path, for_object='labels')
 
-    results = Parallel(n_jobs=-1)(delayed(process_frame)(frame, skel_parts) for frame in label_obj.labeled_frames)
+    # Extract data from frames
+    frame_data = [extract_frame_data(frame) for frame in label_obj.labeled_frames]
+
+    # Process data in parallel
+    results = Parallel(n_jobs=-1)(
+        delayed(process_frame_data)(frame_idx, instances_data, skel_parts)
+        for frame_idx, instances_data in frame_data
+    )
 
     data = [item for sublist in results for item in sublist]
 
@@ -50,7 +65,10 @@ def slp_to_feather(file_path, skel_parts):
 
 # Identify paths and filenames of all .mp4s in folder
 if os.path.isdir(videos_path):
-    video_file_paths = [f'{videos_path}/{f}' for f in os.listdir(videos_path) if os.path.isfile(os.path.join(videos_path, f)) and f.endswith('.mp4')]
+    video_file_paths = [
+        f'{videos_path}/{f}' for f in os.listdir(videos_path)
+        if os.path.isfile(os.path.join(videos_path, f)) and f.endswith('.mp4')
+    ]
 else:
     print('Error: -p/--videos-path is not a directory!')
 
