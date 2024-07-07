@@ -11,7 +11,7 @@ parser.add_argument('-m', '--model', dest='model', action='store', type=str, req
 
 # ingesting user-input arguments
 args = parser.parse_args()
-path = args.path
+videos_path = args.path
 model = args.model
 
 print('sleap-convert_slp.py started...')
@@ -40,4 +40,13 @@ def slp_to_feather(file_path, skel_parts):
     df = pd.DataFrame(data, columns = columns)
     df.to_feather(feather_file)
 
-slp_to_feather(path, skel_parts)
+# identify paths and filenames of all .mp4s in folder
+if(os.path.isdir(videos_path)):
+    video_file_paths = [f'{videos_path}/{f}' for f in os.listdir(videos_path) if os.path.isfile(os.path.join(videos_path, f)) and (f.endswith('.mp4'))]
+else:
+    print('Error: -p/--videos-path is not a directory!')
+
+video_file_paths = [x.replace('.mp4', '.predictions.slp')]
+
+for path in video_file_paths:
+    slp_to_feather(path, skel_parts)
