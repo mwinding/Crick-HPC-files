@@ -5,20 +5,66 @@ import subprocess
 import time
 import json
 import csv
+import h5py
+import pyarrow.feather as feather
+import pandas as pd
+import numpy as np
+from sleap.io.format import read
+from joblib import Parallel, delayed
+from tqdm import tqdm
 
 # pulling user-input variables from command line
 parser = argparse.ArgumentParser(description='sleap_inference: batch inference using sleap models on NEMO')
-parser.add_argument('-m1', '--centroid-model', dest='centroid_model', action='store', type=str, required=True, help='path to centroid model')
-parser.add_argument('-m2', '--centered-model', dest='centered_model', action='store', type=str, required=True, help='path to centered instance model')
+parser.add_argument('-m', '--model', dest='model', action='store', type=str, required=True, help='type of model')
 parser.add_argument('-p', '--videos-path', dest='videos_path', action='store', type=str, default=None, help='path to ip_address list')
-parser.add_argument('-s', '--skeleton-parts', dest='skel_parts', action='store', type=str, nargs='+', default=None, help='all node names in SLEAP skeleton')
+parser.add_argument('-j', '--job', dest='job', action='store', type=str, default=None, help='p=predict animal locations, t=track animals, c=convert output file to feather')
+parser.add_argument('-f', '--frames', dest='frames', action='store', type=str, default='all', help='track animals?')
 
 # ingesting user-input arguments
 args = parser.parse_args()
-centroid_model = args.centroid_model
-centered_model = args.centered_model
+model = args.model
 videos_path = args.videos_path
-skel_parts = args.skel_parts
+job = args.job
+frames = args.frames
+
+# determine if all frames should be processed or just some
+if frames=='all': frame_input = ''
+else: frame_input = f' --frames {frames}'
+
+# identify and set model paths
+def find_models(path):
+    centroid_model = []
+    centered_model = []
+
+    for root, dirs, files in os.walk(path):
+        for dir_name in dirs:
+            full_path = os.path.join(root, dir_name)
+            if '.centroid' in dir_name:
+                full_path = full_path + '/training_config.json'
+                centroid_model.append(full_path)
+            elif '.centered_instance' in dir_name:
+                full_path = full_path + '/training_config.json'
+                centered_model.append(full_path)
+
+    if(len(centroid_model)>1 and len(centered_model)>1): raise Exception(f"Multiple centroid and centered models detected! \nInvestigate in this directory: \n{path}")
+    if(len(centroid_model)>1): raise Exception(f"Multiple centroid models detected! \nInvestigate in this directory: \n{path}")
+    if(len(centered_model)>1): raise Exception(f"Multiple centered models detected! \nInvestigate in this directory: \n{path}")
+
+    return(centroid_model[0], centered_model[0])
+
+if model == 'sideview': 
+    path = '/camp/lab/windingm/home/shared/models/sideview/active/'
+    skel_parts = ['head', 'mouthhooks', 'body', 'tail', 'spiracle']
+
+if model == 'topdown': 
+    path = '/camp/lab/windingm/home/shared/models/topdown/active/'
+    skel_parts = ['head', 'body', 'tail']
+
+if model == 'pupae': 
+    path = '/camp/lab/windingm/home/shared/models/pupae/active/'
+    skel_parts = ['head', 'body', 'tail']
+
+centroid_model, centered_model = find_models(path)
 
 # identify paths and filenames of all .mp4s in folder
 if(os.path.isdir(videos_path)):
@@ -48,7 +94,7 @@ script = f"""#!/bin/bash
 
 ml purge
 ml Anaconda3/2023.09-0
-ml CUDA/12.2.0
+ml cuDNN/8.2.1.32-CUDA-11.3.1
 source /camp/apps/eb/software/Anaconda/conda.env.sh
 
 conda activate sleap
@@ -65,45 +111,39 @@ echo "Full path to mp4: $path_var"
 echo "Centroid model path: {centroid_model}"
 echo "Centered instance model path: {centered_model}"
 echo "Output path: {videos_path}/$name_var.predictions.slp"
-echo "Output path: {videos_path}/$name_var.tracks.slp"
-echo "Output path: {videos_path}/$name_var.tracks.json"
-
-sleap-track $path_var --verbosity rich -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
-sleap-track --tracking.tracker simple --verbosity rich -o {videos_path}/$name_var.tracks.slp {videos_path}/$name_var.predictions.slp
-sleap-convert {videos_path}/$name_var.tracks.slp -o {videos_path}/$name_var.tracks.json --format json
 """
 
-# Create a temporary file to hold the SBATCH script
-with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_script:
-    tmp_script.write(script)
-    tmp_script_path = tmp_script.name
+if 'p' in job:
+    script += f"""
+echo "Output path: {videos_path}/$name_var.predictions.h5"
+sleap-track $path_var --verbosity rich --batch_size 64{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
+"""
 
-# run the SBATCH script
-process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+if 't' in job:
+    script += f"""
+echo "Output path: {videos_path}/$name_var.tracks.slp"
+echo "Output path: {videos_path}/$name_var.tracks.h5"
+sleap-track --tracking.tracker simple --verbosity rich -o {videos_path}/$name_var.tracks.slp {videos_path}/$name_var.predictions.slp
+"""
 
-# delete the temporary sbatch file after submission
-os.unlink(tmp_script_path)
-
-# Check the result and extract job ID from the output
-if process.returncode == 0:
-    job_id_output = process.stdout.strip()
-    print(f'\t{job_id_output}')
-
-    job_id = job_id_output.split()[-1]
+if ('c' in job) and ('t' in job):
+    script += f"""
+sleap-convert {videos_path}/$name_var.tracks.slp -o {videos_path}/$name_var.tracks.h5 --format analysis
+"""
 
 # wait until all jobs are done
 def check_job_completed(job_id, initial_wait=120, wait=120):
-        seconds = initial_wait
-        print(f"\tWait for {seconds} seconds before checking if slurm job has completed")
-        time.sleep(seconds)
-        
-        # Wait for the array job to complete
-        print(f"\tWaiting for slurm job {job_id} to complete...")
-        while not is_job_completed(job_id):
-            print(f"\tSlurm job {job_id} is still running. Waiting...")
-            time.sleep(wait)  # Check every 30 seconds
+    seconds = initial_wait
+    print(f"\tWait for {seconds} seconds before checking if slurm job has completed")
+    time.sleep(seconds)
+    
+    # Wait for the array job to complete
+    print(f"\tWaiting for slurm job {job_id} to complete...")
+    while not is_job_completed(job_id):
+        print(f"\tSlurm job {job_id} is still running. Waiting...")
+        time.sleep(wait)  # Check every 30 seconds
 
-        print(f"\tSlurm job {job_id} has completed.\n")
+    print(f"\tSlurm job {job_id} has completed.\n")
 
 def is_job_completed(job_id):
     cmd = ["sacct", "-j", f"{job_id}", "--format=JobID,State", "--noheader"]
@@ -128,47 +168,198 @@ def is_job_completed(job_id):
 
     return all_completed
 
-check_job_completed(job_id)
+if ('p' in job) or ('t' in job):
+    # Create a temporary file to hold the SBATCH script
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_script:
+        tmp_script.write(script)
+        tmp_script_path = tmp_script.name
 
-# convert tracking JSONs to CSVs
-def process_tracks_json(videos_path, names, skel_parts):
-    for name in names:
-        with open(f'{videos_path}/{name}.tracks.json', 'r') as file:
-            data = json.load(file)
+    # run the SBATCH script
+    process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-        data_labels = data['labels']
+    # delete the temporary sbatch file after submission
+    os.unlink(tmp_script_path)
 
-        # Generate column names based on body parts
-        columns = ['track_id', 'frame'] + [f'{coord}_{part}' for part in skel_parts for coord in ['x', 'y', 'score']]
+    # Check the result and extract job ID from the output
+    if process.returncode == 0:
+        job_id_output = process.stdout.strip()
+        print(f'\t{job_id_output}')
 
-        # Open a CSV file to write to
-        with open(f'{videos_path}/{name}.tracks.csv', mode='w', newline='') as file:
-            writer = csv.writer(file)
-            
-            # Write the header row
-            writer.writerow(columns)
-            
-            # Loop through each frame in the data
-            for frame in data_labels:
-                video_id = frame['video']
-                frame_idx = frame['frame_idx']
+        job_id = job_id_output.split()[-1]
+    
+    check_job_completed(job_id)
 
-                # Loop through each instance in the frame
-                for instance in frame['_instances']:
-                    track_id = instance['track']
+# convert .slp to .feather
+def slp_to_feather(file_path, skel_parts):
 
-                    # Initialize dictionary to store coordinates and scores
-                    coords = {part: {'x': None, 'y': None, 'score': None} for part in skel_parts}
+    feather_file = file_path.replace('.slp', '.feather')
+    label_obj = read(file_path, for_object='labels')
 
-                    # Loop through each point to assign coordinates and scores
-                    for point_id, point_details in instance['_points'].items():
-                        part_name = skel_parts[int(point_id)]
-                        coords[part_name] = {'x': point_details['x'], 'y': point_details['y'], 'score': point_details['score']}
-                    
-                    # Write row data
-                    row = [track_id, frame_idx]
-                    for part in skel_parts:
-                        row.extend([coords[part]['x'], coords[part]['y'], coords[part]['score']])
-                    writer.writerow(row)
+    data = []
+    for i, frame in enumerate(label_obj.labeled_frames):
+        for j, instance in enumerate(frame._instances):
+            array = [j] + [i] + list(instance.points_and_scores_array.flatten())
+            array = [np.round(x, 2).astype('float32') for x in array] # reduce size of data
+            data.append(array)
 
-process_tracks_json(videos_path, names, skel_parts)
+    columns = ['track_id', 'frame']
+    for part in skel_parts:
+        columns.extend([f'x_{part}', f'y_{part}', f'score_{part}'])
+
+    df = pd.DataFrame(data, columns = columns)
+    df.to_feather(feather_file)
+
+# convert all .mp4s names to .slp names folder
+if 't' in job: video_file_paths = [x.replace('.mp4', '.tracks.slp') for x in video_file_paths]
+else: video_file_paths = [x.replace('.mp4', '.predictions.slp') for x in video_file_paths]
+
+# Parallelize the conversion of .slp files to .feather files
+if 'c' in job:
+    Parallel(n_jobs=-1)(
+        delayed(slp_to_feather)(path, skel_parts) for path in tqdm(video_file_paths, desc="Processing .slp files")
+    )
+
+'''
+# sbatch script to run the array job, to run batch predictions with SLEAP on all videos
+convert_script = f"""#!/bin/bash
+#SBATCH --job-name=slp-convert
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
+#SBATCH --array=1-{num_videos}
+#SBATCH --partition=ncpu
+#SBATCH --mem=200G
+#SBATCH --time=8:00:00
+#SBATCH --mail-user=$(whoami)@crick.ac.uk
+#SBATCH --mail-type=FAIL
+
+ml purge
+ml Anaconda3/2023.09-0
+ml cuDNN/8.2.1.32-CUDA-11.3.1
+source /camp/apps/eb/software/Anaconda/conda.env.sh
+
+source activate sleap
+
+# Debugging information
+echo "SLURM job id: $SLURM_JOB_ID"
+echo "SLURM task id: $SLURM_ARRAY_TASK_ID"
+echo "Videos path: {videos_path}"
+echo "Model path: {model}"
+echo "Running on host: $(hostname)"
+echo "Active conda environment: $(conda info --envs | grep \*)"
+echo "Installed packages in conda environment:"
+source list
+
+# convert ip_string to shell array
+IFS=' ' read -r -a path_array <<< "{video_file_paths_joined}"
+path_var="${{path_array[$SLURM_ARRAY_TASK_ID-1]}}"
+
+IFS=' ' read -r -a name_array <<< "{names_joined}"
+name_var="${{name_array[$SLURM_ARRAY_TASK_ID-1]}}"
+
+echo "Processing slp: $name_var.predictions.slp"
+echo "Full path to slp: {videos_path}.predictions.slp"
+echo "Output path: {videos_path}/$name_var.predictions.feather"
+
+cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-convert_slp.py -p "{videos_path}/$name_var.predictions.slp" -m "{model}"" 
+echo "$cmd"
+eval $cmd > python_output_convert-slp.log 2>&1
+"""
+
+print(num_videos)
+print(video_file_paths_joined)
+print(names_joined)
+if 'c' in job:
+    print('attempting convert job array...')
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_convert_script:
+        tmp_convert_script.write(convert_script)
+        tmp_convert_script_path = tmp_convert_script.name
+
+    # run the SBATCH script
+    process = subprocess.run(["sbatch", tmp_convert_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    print('job submitted')
+    print(f"stdout: {process.stdout}")
+    print(f"stderr: {process.stderr}")
+    
+    # delete the temporary sbatch file after submission
+    os.unlink(tmp_convert_script_path)
+
+    # Check the result and extract job ID from the output
+    if process.returncode == 0:
+        job_id_output = process.stdout.strip()
+        print(f'\t{job_id_output}')
+
+        job_id = job_id_output.split()[-1]
+
+    check_job_completed(job_id)
+'''
+# # convert .slp to .feather
+# def slp_to_feather(videos_path, names, skel_parts, job):
+#     for name in names:
+#         if 't' in job:
+#             file_path = f'{videos_path}/{name}.tracks.slp'
+#             feather_file = f'{videos_path}/{name}.tracks.feather'
+#         else:
+#             file_path = f'{videos_path}/{name}.predictions.slp'
+#             feather_file = f'{videos_path}/{name}.predictions.feather'
+
+#     label_obj = read(file_path, for_object='labels')
+
+#     data = []
+#     for i, frame in enumerate(label_obj.labeled_frames):
+#         for j, instance in enumerate(frame._instances):
+#             data.append([j] + [i] + list(instance.points_and_scores_array.flatten()))
+
+#     columns = ['track_id', 'frame']
+#     for part in skel_parts:
+#         columns.extend([f'x_{part}', f'y_{part}', f'score_{part}'])
+
+#     df = pd.DataFrame(data, columns = columns)
+#     df.to_feather(feather_file)
+
+# # convert tracking .h5 to .feather
+# def h5_to_feather(videos_path, names, skel_parts, job):
+#     for name in names:
+#         print(f'converting {name} to feather')
+#         if 't' in job:
+#             h5_file = f'{videos_path}/{name}.tracks.h5'
+#             feather_file = f'{videos_path}/{name}.tracks.feather'
+#         else:
+#             h5_file = f'{videos_path}/{name}.predictions.h5'
+#             feather_file = f'{videos_path}/{name}.predictions.feather'
+
+#         with h5py.File(h5_file, 'r') as hdf5:
+#             data = hdf5['tracks'][:].T
+#             scores = hdf5['tracking_scores'][:]
+
+#             # Generate column names based on body parts, identities, and scores
+#             columns = ['track_id', 'frame']
+#             for part in skel_parts:
+#                 columns.extend([f'x_{part}', f'y_{part}', f'score_{part}'])
+
+#             # Create a list to hold all rows of data
+#             all_rows = []
+
+#             # Loop through each frame
+#             for frame_idx in range(data.shape[0]):
+#                 # Loop through each identity
+#                 for identity_idx in range(data.shape[3]):
+#                     row = [identity_idx, frame_idx]
+#                     for part_idx in range(data.shape[1]):
+#                         x, y = data[frame_idx, part_idx, :, identity_idx]
+#                         x = np.round(x, 2).astype('float32')
+#                         y = np.round(y, 2).astype('float32')
+
+#                         score = scores[frame_idx, part_idx + 1] if part_idx < len(skel_parts) else np.nan  # Adjust index to skip the first score
+#                         score = np.round(score, 2).astype('float32')
+#                         row.extend([x, y, score])
+#                     all_rows.append(row)
+
+#             # Convert the list to a DataFrame
+#             df = pd.DataFrame(all_rows, columns=columns)
+
+#             # Save the DataFrame to a Feather file
+#             df.to_feather(feather_file)
+
+# if 'c' in job:
+#     if 't' in job: h5_to_feather(videos_path, names, skel_parts, job)
+#     else: slp_to_feather(videos_path, names, skel_parts, job)
