@@ -200,9 +200,9 @@ convert_script = f"""#!/bin/bash
 
 ml purge
 ml Anaconda3/2023.09-0
-# source /camp/apps/eb/software/Anaconda/conda.env.sh
+source /camp/apps/eb/software/Anaconda/conda.env.sh
 
-conda activate sleap
+source activate sleap
 
 # Debugging information
 echo "SLURM job id: $SLURM_JOB_ID"
