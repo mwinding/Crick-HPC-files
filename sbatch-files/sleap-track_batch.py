@@ -188,7 +188,7 @@ if ('p' in job) or ('t' in job):
     check_job_completed(job_id)
 
 # sbatch script to run the array job, to run batch predictions with SLEAP on all videos
-script = f"""#!/bin/bash
+convert_script = f"""#!/bin/bash
 #SBATCH --job-name=slp-convert
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
@@ -220,18 +220,21 @@ cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-fil
 eval $cmd > python_output_convert-slp.log 2>&1
 """
 
-print (num_videos)
+print(num_videos)
 print(video_file_paths_joined)
 print(names_joined)
 if 'c' in job:
     print('attempting convert job array...')
     with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_script:
-        tmp_script.write(script)
+        tmp_script.write(convert_script)
         tmp_script_path = tmp_script.name
 
         # run the SBATCH script
         process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         print('job submitted')
+        print(f"stdout: {process.stdout}")
+        print(f"stderr: {process.stderr}")
+        
         # delete the temporary sbatch file after submission
         os.unlink(tmp_script_path)
 
