@@ -200,6 +200,7 @@ convert_script = f"""#!/bin/bash
 
 ml purge
 ml Anaconda3/2023.09-0
+ml cuDNN/8.2.1.32-CUDA-11.3.1
 source /camp/apps/eb/software/Anaconda/conda.env.sh
 
 # Debugging information

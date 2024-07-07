@@ -64,6 +64,7 @@ convert_script = f"""#!/bin/bash
 
 ml purge
 ml Anaconda3/2023.09-0
+ml cuDNN/8.2.1.32-CUDA-11.3.1
 source /camp/apps/eb/software/Anaconda/conda.env.sh
 
 source activate sleap
@@ -89,7 +90,7 @@ echo "Processing slp: $name_var.predictions.slp"
 echo "Full path to slp: {videos_path}.predictions.slp"
 echo "Output path: {videos_path}/$name_var.predictions.feather"
 
-cmd="python3 -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-convert_slp.py -p "{videos_path}/$name_var.predictions.slp" -m "{model}"" 
+cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-convert_slp.py -p "{videos_path}/$name_var.predictions.slp" -m "{model}"" 
 echo $cmd
 eval $cmd > python_output_convert-slp.log 2>&1
 """
