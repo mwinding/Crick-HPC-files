@@ -221,6 +221,9 @@ cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-fil
 eval $cmd > python_output_convert-slp.log 2>&1
 """
 
+print (num_videos)
+print(video_file_paths_joined)
+print(names_joined)
 if 'c' in job:
     with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_script:
         tmp_script.write(script)
