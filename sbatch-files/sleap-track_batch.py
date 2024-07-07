@@ -225,6 +225,7 @@ echo "Output path: {videos_path}/$name_var.predictions.feather"
 
 conda activate sleap
 cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-convert_slp.py -p "{videos_path}/$name_var.predictions.slp" -m "{model}"" 
+echo "$cmd"
 eval $cmd > python_output_convert-slp.log 2>&1
 """
 
