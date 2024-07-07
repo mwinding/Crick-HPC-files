@@ -252,6 +252,8 @@ if 'c' in job:
         job_id_output = process.stdout.strip()
         print(f'\t{job_id_output}')
 
+    check_job_completed(job_id)
+
 # # convert .slp to .feather
 # def slp_to_feather(videos_path, names, skel_parts, job):
 #     for name in names:
