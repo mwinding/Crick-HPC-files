@@ -252,6 +252,8 @@ if 'c' in job:
         job_id_output = process.stdout.strip()
         print(f'\t{job_id_output}')
 
+        job_id = job_id_output.split()[-1]
+
     check_job_completed(job_id)
 
 # # convert .slp to .feather
