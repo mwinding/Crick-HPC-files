@@ -2,13 +2,6 @@ import os
 import argparse
 import tempfile
 import subprocess
-import time
-import json
-import csv
-import h5py
-import pyarrow.feather as feather
-import pandas as pd
-import numpy as np
 
 # pulling user-input variables from command line
 parser = argparse.ArgumentParser(description='sleap_inference: batch inference using sleap models on NEMO')
@@ -62,7 +55,6 @@ convert_script = f"""#!/bin/bash
 
 ml purge
 ml Anaconda3/2023.09-0
-ml cuDNN/8.2.1.32-CUDA-11.3.1
 source /camp/apps/eb/software/Anaconda/conda.env.sh
 
 source activate sleap
@@ -109,4 +101,4 @@ print(f"stdout: {process.stdout}")
 print(f"stderr: {process.stderr}")
 
 # delete the temporary sbatch file after submission
-#os.unlink(tmp_script_path)
+os.unlink(tmp_script_path)
