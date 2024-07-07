@@ -9,7 +9,10 @@ import h5py
 import pyarrow.feather as feather
 import pandas as pd
 import numpy as np
-from sleap.io.format import read
+import importlib
+
+sleap_io_format = importlib.import_module('sleap.io.format')
+read = sleap_io_format.read
 
 # pulling user-input variables from command line
 parser = argparse.ArgumentParser(description='sleap_inference: convert .slp files to .feather on NEMO')
