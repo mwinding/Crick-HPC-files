@@ -93,7 +93,7 @@ script = f"""#!/bin/bash
 ml purge
 ml Anaconda3/2023.09-0
 ml cuDNN/8.2.1.32-CUDA-11.3.1
-source /camp/apps/eb/software/Anaconda/conda.env.sh
+source /nemo/apps/eb/software/Anaconda/conda.env.sh
 
 conda activate sleap
 
@@ -131,17 +131,17 @@ sleap-convert {videos_path}/$name_var.tracks.slp -o {videos_path}/$name_var.trac
 
 # wait until all jobs are done
 def check_job_completed(job_id, initial_wait=120, wait=120):
-        seconds = initial_wait
-        print(f"\tWait for {seconds} seconds before checking if slurm job has completed")
-        time.sleep(seconds)
-        
-        # Wait for the array job to complete
-        print(f"\tWaiting for slurm job {job_id} to complete...")
-        while not is_job_completed(job_id):
-            print(f"\tSlurm job {job_id} is still running. Waiting...")
-            time.sleep(wait)  # Check every 30 seconds
+    seconds = initial_wait
+    print(f"\tWait for {seconds} seconds before checking if slurm job has completed")
+    time.sleep(seconds)
+    
+    # Wait for the array job to complete
+    print(f"\tWaiting for slurm job {job_id} to complete...")
+    while not is_job_completed(job_id):
+        print(f"\tSlurm job {job_id} is still running. Waiting...")
+        time.sleep(wait)  # Check every 30 seconds
 
-        print(f"\tSlurm job {job_id} has completed.\n")
+    print(f"\tSlurm job {job_id} has completed.\n")
 
 def is_job_completed(job_id):
     cmd = ["sacct", "-j", f"{job_id}", "--format=JobID,State", "--noheader"]
@@ -201,7 +201,7 @@ convert_script = f"""#!/bin/bash
 
 ml purge
 ml Anaconda3/2023.09-0
-source /camp/apps/eb/software/Anaconda/conda.env.sh
+source /nemo/apps/eb/software/Anaconda/conda.env.sh
 
 conda activate sleap
 
@@ -216,7 +216,7 @@ echo "Processing slp: $name_var.predictions.slp"
 echo "Full path to slp: $path_var.predictions.slp"
 echo "Output path: {videos_path}/$name_var.predictions.slp"
 
-cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-convert_slp.py -p "{videos_path}/$name_var.predictions.slp" -s "{skel_parts}"" 
+cmd="python -u /nemo/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-convert_slp.py -p "{videos_path}/$name_var.predictions.slp" -s "{skel_parts}"" 
 eval $cmd > python_output_convert-slp.log 2>&1
 """
 
@@ -229,14 +229,14 @@ if 'c' in job:
         tmp_script.write(convert_script)
         tmp_script_path = tmp_script.name
 
-        # run the SBATCH script
-        process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        print('job submitted')
-        print(f"stdout: {process.stdout}")
-        print(f"stderr: {process.stderr}")
-        
-        # delete the temporary sbatch file after submission
-        os.unlink(tmp_script_path)
+    # run the SBATCH script
+    process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    print('job submitted')
+    print(f"stdout: {process.stdout}")
+    print(f"stderr: {process.stderr}")
+    
+    # delete the temporary sbatch file after submission
+    os.unlink(tmp_script_path)
 
 # # convert .slp to .feather
 # def slp_to_feather(videos_path, names, skel_parts, job):
