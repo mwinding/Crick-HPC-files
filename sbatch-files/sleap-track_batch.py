@@ -191,17 +191,16 @@ if ('p' in job) or ('t' in job):
 script = f"""#!/bin/bash
 #SBATCH --job-name=slp-convert
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=32
+#SBATCH --cpus-per-task=16
 #SBATCH --array=1-{num_videos}
 #SBATCH --partition=ncpu
-#SBATCH --mem=100G
-#SBATCH --time=48:00:00
+#SBATCH --mem=64G
+#SBATCH --time=8:00:00
 #SBATCH --mail-user=$(whoami)@crick.ac.uk
 #SBATCH --mail-type=FAIL
 
 ml purge
 ml Anaconda3/2023.09-0
-ml cuDNN/8.2.1.32-CUDA-11.3.1
 source /camp/apps/eb/software/Anaconda/conda.env.sh
 
 conda activate sleap
