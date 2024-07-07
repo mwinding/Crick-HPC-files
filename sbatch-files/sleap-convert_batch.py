@@ -14,14 +14,12 @@ import numpy as np
 parser = argparse.ArgumentParser(description='sleap_inference: batch inference using sleap models on NEMO')
 parser.add_argument('-m', '--model', dest='model', action='store', type=str, required=True, help='type of model')
 parser.add_argument('-p', '--videos-path', dest='videos_path', action='store', type=str, default=None, help='path to ip_address list')
-parser.add_argument('-j', '--job', dest='job', action='store', type=str, default=None, help='p=predict animal locations, t=track animals, c=convert output file to feather')
 parser.add_argument('-f', '--frames', dest='frames', action='store', type=str, default='all', help='track animals?')
 
 # ingesting user-input arguments
 args = parser.parse_args()
 model = args.model
 videos_path = args.videos_path
-job = args.job
 frames = args.frames
 
 # determine if all frames should be processed or just some
@@ -98,17 +96,17 @@ eval $cmd > python_output_convert-slp.log 2>&1
 print(num_videos)
 print(video_file_paths_joined)
 print(names_joined)
-if 'c' in job:
-    print('attempting convert job array...')
-    with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_convert_script:
-        tmp_convert_script.write(convert_script)
-        tmp_script_path = tmp_convert_script.name
 
-    # run the SBATCH script
-    process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    print('job submitted')
-    print(f"stdout: {process.stdout}")
-    print(f"stderr: {process.stderr}")
-    
-    # delete the temporary sbatch file after submission
-    os.unlink(tmp_script_path)
+print('attempting convert job array...')
+with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_convert_script:
+    tmp_convert_script.write(convert_script)
+    tmp_script_path = tmp_convert_script.name
+
+# run the SBATCH script
+process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+print('job submitted')
+print(f"stdout: {process.stdout}")
+print(f"stderr: {process.stderr}")
+
+# delete the temporary sbatch file after submission
+os.unlink(tmp_script_path)
