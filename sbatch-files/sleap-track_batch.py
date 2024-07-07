@@ -194,7 +194,7 @@ script = f"""#!/bin/bash
 #SBATCH --cpus-per-task=16
 #SBATCH --array=1-{num_videos}
 #SBATCH --partition=ncpu
-#SBATCH --mem=64G
+#SBATCH --mem=200G
 #SBATCH --time=8:00:00
 #SBATCH --mail-user=$(whoami)@crick.ac.uk
 #SBATCH --mail-type=FAIL
@@ -224,13 +224,14 @@ print (num_videos)
 print(video_file_paths_joined)
 print(names_joined)
 if 'c' in job:
+    print('attempting convert job array...')
     with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_script:
         tmp_script.write(script)
         tmp_script_path = tmp_script.name
 
         # run the SBATCH script
         process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
+        print('job submitted')
         # delete the temporary sbatch file after submission
         os.unlink(tmp_script_path)
 
