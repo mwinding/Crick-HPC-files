@@ -53,7 +53,7 @@ if(os.path.isdir(videos_path)):
 else:
     print('Error: -p/--videos-path is not a directory!')
 
-video_file_paths = [x.replace('.mp4', '.predictions.slp')]
+video_file_paths = [x.replace('.mp4', '.predictions.slp') for x in video_file_paths]
 
 for path in video_file_paths:
     slp_to_feather(path, skel_parts)
