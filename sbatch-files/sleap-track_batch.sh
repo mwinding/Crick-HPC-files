@@ -40,5 +40,5 @@ conda activate sleap
 # run python script
 # save output to log file in case there is an issue
 # adding -u makes sure the python_output.log is dynamically written to
-cmd="python -u /camp/lab/windingm/home/shared/TestDev/Crick-HPC-files/sbatch-files/sleap-track_batch.py -m "$MODEL" -p "$DIR" -j "$JOB" -f "$FRAMES"" 
+cmd="python -u /camp/lab/windingm/home/shared/Crick-HPC-files/sbatch-files/sleap-track_batch.py -m "$MODEL" -p "$DIR" -j "$JOB" -f "$FRAMES"" 
 eval $cmd > python_output.log 2>&1
