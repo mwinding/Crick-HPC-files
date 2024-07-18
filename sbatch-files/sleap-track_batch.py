@@ -87,7 +87,7 @@ script = f"""#!/bin/bash
 #SBATCH --array=1-{num_videos}
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
-#SBATCH --mem=64G
+#SBATCH --mem=150G
 #SBATCH --time=48:00:00
 #SBATCH --mail-user=$(whoami)@crick.ac.uk
 #SBATCH --mail-type=FAIL
@@ -116,7 +116,7 @@ echo "Output path: {videos_path}/$name_var.predictions.slp"
 if 'p' in job:
     script += f"""
 echo "Output path: {videos_path}/$name_var.predictions.h5"
-sleap-track $path_var --verbosity rich --batch_size 64{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
+sleap-track $path_var --verbosity rich --batch_size 32{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
 """
 
 if 't' in job:
