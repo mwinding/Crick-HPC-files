@@ -9,7 +9,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
 #SBATCH --partition=ncpu
-#SBATCH --mem=200G
+#SBATCH --mem=400G
 #SBATCH --time=48:00:00
 #SBATCH --mail-user=$(whoami)@crick.ac.uk
 #SBATCH --mail-type=FAIL
