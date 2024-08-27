@@ -190,7 +190,7 @@ if ('p' in job) or ('t' in job):
     check_job_completed(job_id)
 
 # convert .slp to .feather
-def slp_to_feather(file_path, skel_parts):
+def slp_to_feather(file_path, skel_parts, track_ids):
 
     feather_file = file_path.replace('.slp', '.feather')
     label_obj = read(file_path, for_object='labels')
@@ -198,11 +198,12 @@ def slp_to_feather(file_path, skel_parts):
     data = []
     for i, frame in enumerate(label_obj.labeled_frames):
         for j, instance in enumerate(frame._instances):
-            array = [j] + [i] + list(instance.points_and_scores_array.flatten())
+            if track_ids: j = instance.track.track_id # adds in the track ID instead of the jth index
+            array = [j] + [i] + [instance.score] + list(instance.points_and_scores_array.flatten())
             array = [np.round(x, 2).astype('float32') for x in array] # reduce size of data
             data.append(array)
 
-    columns = ['track_id', 'frame']
+    columns = ['track_id', 'frame', 'instance_score']
     for part in skel_parts:
         columns.extend([f'x_{part}', f'y_{part}', f'score_{part}'])
 
@@ -215,6 +216,9 @@ else: video_file_paths = [x.replace('.mp4', '.predictions.slp') for x in video_f
 
 # Parallelize the conversion of .slp files to .feather files
 if 'c' in job:
+    if 't' in job: track_ids = True
+    if 't' not in job: track_ids = False
+
     Parallel(n_jobs=-1)(
-        delayed(slp_to_feather)(path, skel_parts) for path in tqdm(video_file_paths, desc="Processing .slp files")
+        delayed(slp_to_feather)(path, skel_parts, track_ids=track_ids) for path in tqdm(video_file_paths, desc="Processing .slp files")
     )
