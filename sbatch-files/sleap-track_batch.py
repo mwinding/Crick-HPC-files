@@ -197,7 +197,7 @@ def slp_to_feather(file_path, skel_parts, track_ids):
     data = []
     for i, frame in enumerate(label_obj.labeled_frames):
         for j, instance in enumerate(frame._instances):
-            if track_ids: j = instance.track.name # adds in the track ID instead of the jth index
+            if track_ids: j = int(instance.track.name.replace("track_", "")) # adds in the track ID instead of the jth index
             array = [j] + [i] + [instance.score] + list(instance.points_and_scores_array.flatten())
             array = [np.round(x, 2).astype('float32') for x in array] # reduce size of data
             data.append(array)
