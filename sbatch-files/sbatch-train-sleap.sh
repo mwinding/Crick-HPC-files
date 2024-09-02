@@ -2,8 +2,8 @@
 
 #SBATCH --job-name=SLEAP_training
 #SBATCH --ntasks=1
-#SBATCH --time=06:00:00
-#SBATCH --mem=64G
+#SBATCH --time=48:00:00
+#SBATCH --mem=200G
 #SBATCH --partition=gpu
 #SBATCH --cpus-per-task=8
 #SBATCH --gres=gpu:1
