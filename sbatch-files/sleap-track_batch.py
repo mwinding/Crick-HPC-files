@@ -56,13 +56,17 @@ if model == 'sideview':
     path = '/camp/lab/windingm/home/shared/models/sideview/active/'
     skel_parts = ['head', 'mouthhooks', 'body', 'tail', 'spiracle']
 
-if model == 'topdown': 
+elif model == 'topdown': 
     path = '/camp/lab/windingm/home/shared/models/topdown/active/'
     skel_parts = ['head', 'body', 'tail']
 
-if model == 'pupae': 
+elif model == 'pupae': 
     path = '/camp/lab/windingm/home/shared/models/pupae/active/'
     skel_parts = ['head', 'body', 'tail']
+
+else:
+    raise ValueError('Model parameter must be "sideview", "topdown", or "pupae"!')
+    
 
 centroid_model, centered_model = find_models(path)
 
