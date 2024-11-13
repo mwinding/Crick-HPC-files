@@ -16,5 +16,5 @@ ml Anaconda3/2023.09-0
 ml CUDA/12.2.0
 source /camp/apps/eb/software/Anaconda/conda.env.sh
 
-conda activate sleap
+conda activate /camp/lab/windingm/home/shared/conda-envs/sleap #use shared conda env on NEMO
 bash train-script.sh
