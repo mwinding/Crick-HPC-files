@@ -222,6 +222,8 @@ if 'c' in job:
     if 't' in job: track_ids = True
     if 't' not in job: track_ids = False
 
+    print(video_file_paths)
+
     Parallel(n_jobs=-1)(
         delayed(slp_to_feather)(path, skel_parts, track_ids=track_ids) for path in tqdm(video_file_paths, desc="Processing .slp files")
     )
