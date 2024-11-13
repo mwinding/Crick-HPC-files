@@ -34,7 +34,7 @@ echo "videos directory path: $DIR"
 echo "jobs, p=prediction, t=track, c=convert to feather: $JOB"
 echo "frames: $FRAMES"
 
-conda activate /camp/lab/windingm/home/shared/conda_envs/sleap #use shared conda env on NEMO
+conda activate /camp/lab/windingm/home/shared/conda-envs/sleap #use shared conda env on NEMO
 
 # run python script
 # save output to log file in case there is an issue

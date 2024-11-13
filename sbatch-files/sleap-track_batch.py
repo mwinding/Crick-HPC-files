@@ -101,7 +101,7 @@ ml Anaconda3/2023.09-0
 ml cuDNN/8.2.1.32-CUDA-11.3.1
 source /camp/apps/eb/software/Anaconda/conda.env.sh
 
-conda activate /camp/lab/windingm/home/shared/conda_envs/sleap
+conda activate /camp/lab/windingm/home/shared/conda-envs/sleap
 
 # convert ip_string to shell array
 IFS=' ' read -r -a path_array <<< "{video_file_paths_joined}"
