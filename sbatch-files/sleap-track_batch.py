@@ -211,6 +211,7 @@ def slp_to_feather(file_path, skel_parts, track_ids):
         columns.extend([f'x_{part}', f'y_{part}', f'score_{part}'])
 
     df = pd.DataFrame(data, columns = columns)
+    df.reset_index(drop=True, inplace=True) # prevents a serialisation error in feather conversion
     df.to_feather(feather_file)
 
 # convert all .mp4s names to .slp names folder
