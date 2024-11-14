@@ -293,7 +293,7 @@ def DBSCAN_cluster(file_path, eps, cos):
     result_df.to_csv(save_file_path, index=False)
 
 if 'd' in job:
-    feather_file_paths = [x.replace('.mp4', '.predictions.feather') for x in video_file_paths]
+    feather_file_paths = [x.replace('.slp', '.feather') for x in video_file_paths]
 
     print(feather_file_paths)
 
