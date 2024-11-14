@@ -231,7 +231,8 @@ if 'c' in job:
 
 # DBSCAN cluster analysis
 # adapted from Anna Seggewisse
-    
+from sklearn.cluster import DBSCAN
+
 eps = 45
 cos = 0.9
 
