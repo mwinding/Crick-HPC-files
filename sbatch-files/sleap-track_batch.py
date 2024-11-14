@@ -72,7 +72,7 @@ centroid_model, centered_model = find_models(path)
 
 # identify paths and filenames of all .mp4s in folder
 if(os.path.isdir(videos_path)):
-    video_file_paths = [f'{videos_path}/{f}' for f in os.listdir(videos_path) if os.path.isfile(os.path.join(videos_path, f)) and (f.endswith('.mp4')) and not (f.endswitch('playback.mp4'))]
+    video_file_paths = [f'{videos_path}/{f}' for f in os.listdir(videos_path) if os.path.isfile(os.path.join(videos_path, f)) and (f.endswith('.mp4')) and not (f.endswith('playback.mp4'))]
     names = [os.path.basename(video_file_path).replace('.mp4', '') for video_file_path in video_file_paths]
 else:
     print('Error: -p/--videos-path is not a directory!')
