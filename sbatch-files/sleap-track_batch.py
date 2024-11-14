@@ -295,6 +295,8 @@ def DBSCAN_cluster(file_path, eps, cos):
 if 'd' in job:
     feather_file_paths = [x.replace('.mp4', '.predictions.feather') for x in video_file_paths]
 
+    print(feather_file_paths)
+
     Parallel(n_jobs=-1)(
         delayed(DBSCAN_cluster)(path, eps=45, cos=0.9) for path in tqdm(feather_file_paths, desc="DBSCAN processing .feather files")
     )
