@@ -72,7 +72,7 @@ centroid_model, centered_model = find_models(path)
 
 # identify paths and filenames of all .mp4s in folder
 if(os.path.isdir(videos_path)):
-    video_file_paths = [f'{videos_path}/{f}' for f in os.listdir(videos_path) if os.path.isfile(os.path.join(videos_path, f)) and (f.endswith('.mp4'))]
+    video_file_paths = [f'{videos_path}/{f}' for f in os.listdir(videos_path) if os.path.isfile(os.path.join(videos_path, f)) and (f.endswith('.mp4')) and not (f.endswitch('playback.mp4'))]
     names = [os.path.basename(video_file_path).replace('.mp4', '') for video_file_path in video_file_paths]
 else:
     print('Error: -p/--videos-path is not a directory!')
@@ -227,4 +227,74 @@ if 'c' in job:
 
     Parallel(n_jobs=-1)(
         delayed(slp_to_feather)(path, skel_parts, track_ids=track_ids) for path in tqdm(video_file_paths, desc="Processing .slp files")
+    )
+
+# DBSCAN cluster analysis
+# adapted from Anna Seggewisse
+    
+eps = 45
+cos = 0.9
+
+def DBSCAN_cluster(file_path, eps, cos):
+
+    # Load the dataset from the Feather file
+    data = pd.read_feather(file_path)
+
+    # Filter data for every 10th frame
+    #filtered_data = data[(data['frame'] % 10 == 0)]
+
+    # Select the relevant columns for DBSCAN (head and tail coordinates)
+    coordinates = data[['track_id', 'frame', 'x_head', 'y_head', 'x_tail', 'y_tail']].dropna()
+
+    # Calculate vectors for each instance (tail - head)
+    coordinates['vector_x'] = coordinates['x_tail'] - coordinates['x_head']
+    coordinates['vector_y'] = coordinates['y_tail'] - coordinates['y_head']
+
+    # Define the custom distance function with separate checks
+    def custom_distance(A, B, cos):
+        tail_A = A[:2]  # x_tail and y_tail of A
+        tail_B = B[:2]  # x_tail and y_tail of B
+        euclidean_tail_dist = np.linalg.norm(tail_A - tail_B)
+        
+        vector_A = A[2:]  # vector_x and vector_y of A
+        vector_B = B[2:]  # vector_x and vector_y of B
+        magnitude_A = np.linalg.norm(vector_A)
+        magnitude_B = np.linalg.norm(vector_B)
+        
+        if magnitude_A == 0 or magnitude_B == 0:
+            return 1000
+        
+        cos_similarity = np.dot(vector_A, vector_B) / (magnitude_A * magnitude_B)
+        
+        if cos_similarity > cos:
+            return euclidean_tail_dist
+        
+        return 1000
+
+    # Initialize an empty list to store clustering results
+    clustering_results = []
+
+    # Loop through each frame for separate clustering
+    for frame, group in coordinates.groupby('frame'):
+        data_for_clustering = group[['x_tail', 'y_tail', 'vector_x', 'vector_y']].values
+        
+        # Apply DBSCAN with the custom metric
+        dbscan = DBSCAN(eps=eps, min_samples=3, metric=lambda A, B: custom_distance(A, B, cos))
+        labels = dbscan.fit_predict(data_for_clustering)
+        
+        group['cluster'] = labels
+        clustering_results.append(group)
+
+    # Concatenate all frame clustering results into a single DataFrame
+    result_df = pd.concat(clustering_results, ignore_index=True)
+
+    # Save clustering results to a CSV file named after the original Feather file
+    save_file_path = f"{file_path.replace('.feather', '')}_CustomDBSCANeps=45-cos=.9.csv"
+    result_df.to_csv(save_file_path, index=False)
+
+if 'd' in job:
+    feather_file_paths = [x.replace('.mp4', '.feather') for x in video_file_paths]
+
+    Parallel(n_jobs=-1)(
+        delayed(DBSCAN_cluster)(path, eps=45, cos=0.9) for path in tqdm(feather_file_paths, desc="DBSCAN processing .feather files")
     )
