@@ -289,11 +289,11 @@ def DBSCAN_cluster(file_path, eps, cos):
     result_df = pd.concat(clustering_results, ignore_index=True)
 
     # Save clustering results to a CSV file named after the original Feather file
-    save_file_path = f"{file_path.replace('.feather', '')}_CustomDBSCANeps=45-cos=.9.csv"
+    save_file_path = f"{file_path.replace('.feather', '')}_CustomDBSCANeps={eps}-cos={cos}.csv"
     result_df.to_csv(save_file_path, index=False)
 
 if 'd' in job:
-    feather_file_paths = [x.replace('.mp4', '.feather') for x in video_file_paths]
+    feather_file_paths = [x.replace('.mp4', '.predictions.feather') for x in video_file_paths]
 
     Parallel(n_jobs=-1)(
         delayed(DBSCAN_cluster)(path, eps=45, cos=0.9) for path in tqdm(feather_file_paths, desc="DBSCAN processing .feather files")
