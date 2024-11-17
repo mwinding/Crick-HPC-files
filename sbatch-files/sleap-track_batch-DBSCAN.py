@@ -71,7 +71,7 @@ clustering_results = []
 # Loop through each frame for separate clustering
 
 # add parallelised bit here    
-clustering_results = Parallel(n_jobs=-1)(
+clustering_results = Parallel(n_jobs=32)(
     delayed(run_DBSCAN)(group, eps=45, cos=0.9) for _, group in tqdm(coordinates.groupby('frame'), desc="DBSCAN processing .feather files")
 )
 
