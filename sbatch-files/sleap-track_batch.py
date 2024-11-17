@@ -248,7 +248,7 @@ if 'd' in job:
     #SBATCH --job-name=slp-DBSCAN
     #SBATCH --ntasks=1
     #SBATCH --cpus-per-task=32
-    #SBATCH --array=1-{len(feather_file_paths_joined)}
+    #SBATCH --array=1-{len(feather_file_paths)}
     #SBATCH --partition=ncpu
     #SBATCH --mem=40G
     #SBATCH --time=2:00:00
