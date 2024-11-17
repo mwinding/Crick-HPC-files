@@ -79,5 +79,5 @@ clustering_results = Parallel(n_jobs=-1)(
 result_df = pd.concat(clustering_results, ignore_index=True)
 
 # Save clustering results to a CSV file named after the original Feather file
-save_file_path = file_path.replace('.feather', f'.CustomDBSCAN-eps={eps}-cos={cos}.feather')
-result_df.to_feather(save_file_path, index=False)
+save_file_path = file_path.replace('.feather', f'.CustomDBSCAN_eps-{eps}_cos-{cos}.feather')
+result_df.to_feather(save_file_path)
