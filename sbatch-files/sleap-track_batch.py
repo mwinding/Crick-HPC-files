@@ -250,7 +250,7 @@ if 'd' in job:
     #SBATCH --cpus-per-task=32
     #SBATCH --array=1-{len(feather_file_paths)}
     #SBATCH --partition=ncpu
-    #SBATCH --mem=40G
+    #SBATCH --mem=200G
     #SBATCH --time=2:00:00
     #SBATCH --mail-user=$(whoami)@crick.ac.uk
     #SBATCH --mail-type=FAIL
