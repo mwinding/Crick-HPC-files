@@ -5,16 +5,10 @@ import joblib
 from sklearn.cluster import DBSCAN
 import os
 import argparse
-import tempfile
-import subprocess
-import time
-import json
-import csv
 import h5py
 import pyarrow.feather as feather
 import pandas as pd
 import numpy as np
-from sleap.io.format import read
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
