@@ -230,77 +230,76 @@ if 'c' in job:
     )
 
 # DBSCAN cluster analysis
-# adapted from Anna Seggewisse; most of code is in sleap-track_batch-DBSCAN.py
+# adapted from Anna Seggewisse
+from sklearn.cluster import DBSCAN
 
 eps = 45
 cos = 0.9
 
+def DBSCAN_cluster(file_path, eps, cos):
+
+    # Load the dataset from the Feather file
+    data = pd.read_feather(file_path)
+
+    # Filter data for every 10th frame
+    #filtered_data = data[(data['frame'] % 10 == 0)]
+
+    # Select the relevant columns for DBSCAN (head and tail coordinates)
+    coordinates = data[['track_id', 'frame', 'x_head', 'y_head', 'x_tail', 'y_tail']].dropna()
+
+    # Calculate vectors for each instance (tail - head)
+    coordinates['vector_x'] = coordinates['x_tail'] - coordinates['x_head']
+    coordinates['vector_y'] = coordinates['y_tail'] - coordinates['y_head']
+
+    # Define the custom distance function with separate checks
+    def custom_distance(A, B, cos):
+        tail_A = A[:2]  # x_tail and y_tail of A
+        tail_B = B[:2]  # x_tail and y_tail of B
+        euclidean_tail_dist = np.linalg.norm(tail_A - tail_B)
+        
+        vector_A = A[2:]  # vector_x and vector_y of A
+        vector_B = B[2:]  # vector_x and vector_y of B
+        magnitude_A = np.linalg.norm(vector_A)
+        magnitude_B = np.linalg.norm(vector_B)
+        
+        if magnitude_A == 0 or magnitude_B == 0:
+            return 1000
+        
+        cos_similarity = np.dot(vector_A, vector_B) / (magnitude_A * magnitude_B)
+        
+        if cos_similarity > cos:
+            return euclidean_tail_dist
+        
+        return 1000
+
+    # Initialize an empty list to store clustering results
+    clustering_results = []
+
+    # Loop through each frame for separate clustering
+    for frame, group in coordinates.groupby('frame'):
+        data_for_clustering = group[['x_tail', 'y_tail', 'vector_x', 'vector_y']].values
+        
+        # Apply DBSCAN with the custom metric
+        dbscan = DBSCAN(eps=eps, min_samples=3, metric=lambda A, B: custom_distance(A, B, cos))
+        labels = dbscan.fit_predict(data_for_clustering)
+        
+        group['cluster'] = labels
+        clustering_results.append(group)
+
+    # Concatenate all frame clustering results into a single DataFrame
+    result_df = pd.concat(clustering_results, ignore_index=True)
+
+    # Save clustering results to a CSV file named after the original Feather file
+    save_file_path = f"{file_path.replace('.feather', '')}_CustomDBSCANeps={eps}-cos={cos}.csv"
+    result_df.to_csv(save_file_path, index=False)
+
 if 'd' in job:
+    eps = 45
+    cos = 0.9
     feather_file_paths = [x.replace('.slp', '.feather') for x in video_file_paths]
 
     print(feather_file_paths)
 
-    # join all paths together in one string that can be later split by the .sh script
-    feather_file_paths_joined = ' '.join(feather_file_paths)
-    array_size = len(feather_file_paths)
-
-    # sbatch script to run the array job, to run batch predictions with SLEAP on all videos
-    script = f"""#!/bin/bash
-    #SBATCH --job-name=slp-DBSCAN
-    #SBATCH --ntasks=1
-    #SBATCH --cpus-per-task=32
-    #SBATCH --array=1-{array_size}
-    #SBATCH --partition=ncpu
-    #SBATCH --mem=200G
-    #SBATCH --time=8:00:00
-    #SBATCH --mail-user=$(whoami)@crick.ac.uk
-    #SBATCH --mail-type=FAIL
-
-    # ml purge
-    # ml Anaconda3/2023.09-0
-    # ml cuDNN/8.2.1.32-CUDA-11.3.1
-    # source /camp/apps/eb/software/Anaconda/conda.env.sh
-
-    # conda activate /camp/lab/windingm/home/shared/conda-envs/sleap
-
-    # convert ip_string to shell array
-    IFS=' ' read -r -a path_array <<< "{feather_file_paths_joined}"
-    path_var="${{path_array[$SLURM_ARRAY_TASK_ID-1]}}"
-    base_var=$(basename "$path_var")
-
-    echo "SLURM_ARRAY_TASK_ID: $SLURM_ARRAY_TASK_ID"
-
-    echo "Processing mp4: $base_var"
-    echo "Full path to mp4: $path_var"
-    echo "Centroid model path: {centroid_model}"
-    echo "Centered instance model path: {centered_model}"
-    echo "Output path: {videos_path}/$base_var.predictions.slp"
-
-    cmd="python -u /camp/lab/windingm/home/shared/Crick-HPC-files/sbatch-files/sleap-track_batch-DBSCAN.py -f "$path_var" -e "{eps}" -c "{cos}"" 
-    eval $cmd > python-output_DBSCAN-$base_var.log 2>&1
-    """
-
-    # Create a temporary file to hold the SBATCH script
-    with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_script2:
-        tmp_script2.write(script)
-        tmp_script_path = tmp_script2.name
-
-    # run the SBATCH script
-    process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-    # delete the temporary sbatch file after submission
-    os.unlink(tmp_script_path)
-    print('Finished creating, running, and deleting temporary .sh file...')
-
-    print("STDOUT:", process.stdout)
-    print("STDERR:", process.stderr)
-
-    # Check the result and extract job ID from the output
-    if process.returncode == 0:
-        job_id_output = process.stdout.strip()
-        print(f'\t{job_id_output}')
-
-        job_id = job_id_output.split()[-1]
-    
-    check_job_completed(job_id)
-    print('Completed DBSCAN array job!')
+    Parallel(n_jobs=-1)(
+        delayed(DBSCAN_cluster)(path, eps=eps, cos=cos) for path in tqdm(feather_file_paths, desc="DBSCAN processing .feather files")
+    )
