@@ -244,8 +244,6 @@ if 'd' in job:
     feather_file_paths_joined = ' '.join(feather_file_paths)
     array_size = len(feather_file_paths)
 
-    print(feather_file_paths_joined)
-
     # sbatch script to run the array job, to run batch predictions with SLEAP on all videos
     script = f"""#!/bin/bash
     #SBATCH --job-name=slp-DBSCAN
@@ -258,12 +256,12 @@ if 'd' in job:
     #SBATCH --mail-user=$(whoami)@crick.ac.uk
     #SBATCH --mail-type=FAIL
 
-    ml purge
-    ml Anaconda3/2023.09-0
-    ml cuDNN/8.2.1.32-CUDA-11.3.1
-    source /camp/apps/eb/software/Anaconda/conda.env.sh
+    # ml purge
+    # ml Anaconda3/2023.09-0
+    # ml cuDNN/8.2.1.32-CUDA-11.3.1
+    # source /camp/apps/eb/software/Anaconda/conda.env.sh
 
-    conda activate /camp/lab/windingm/home/shared/conda-envs/sleap
+    # conda activate /camp/lab/windingm/home/shared/conda-envs/sleap
 
     # convert ip_string to shell array
     IFS=' ' read -r -a path_array <<< "{feather_file_paths_joined}"
@@ -278,8 +276,7 @@ if 'd' in job:
     echo "Centered instance model path: {centered_model}"
     echo "Output path: {videos_path}/$base_var.predictions.slp"
 
-    cmd="python -u /camp/lab/windingm/home/shared/Crick-HPC-files/sbatch-files/sleap-track_batch-DBSCAN.py -f \"$path_var\" -e \"$eps\" -c \"$cos\""
-    echo "Running command: $cmd"
+    cmd="python -u /camp/lab/windingm/home/shared/Crick-HPC-files/sbatch-files/sleap-track_batch-DBSCAN.py -f "$path_var" -e "{eps}" -c "{cos}"" 
     eval $cmd > python-output_DBSCAN-$base_var.log 2>&1
     """
 
