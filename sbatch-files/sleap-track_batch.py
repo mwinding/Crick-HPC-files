@@ -12,26 +12,33 @@ import numpy as np
 from sleap.io.format import read
 from joblib import Parallel, delayed
 from tqdm import tqdm
+from sklearn.cluster import DBSCAN
 
-# pulling user-input variables from command line
+# Function to print elapsed time
+def print_elapsed_time(start_time, step_description):
+    elapsed_time = time.time() - start_time
+    elapsed_timedelta = datetime.timedelta(seconds=elapsed_time)
+    print(f"{step_description}... elapsed time {elapsed_timedelta} (hh:mm:ss).")
+
+# Pulling user-input variables from command line
 parser = argparse.ArgumentParser(description='sleap_inference: batch inference using sleap models on NEMO')
 parser.add_argument('-m', '--model', dest='model', action='store', type=str, required=True, help='type of model')
 parser.add_argument('-p', '--videos-path', dest='videos_path', action='store', type=str, default=None, help='path to ip_address list')
 parser.add_argument('-j', '--job', dest='job', action='store', type=str, default=None, help='p=predict animal locations, t=track animals, c=convert output file to feather')
 parser.add_argument('-f', '--frames', dest='frames', action='store', type=str, default='all', help='track animals?')
 
-# ingesting user-input arguments
+# Ingesting user-input arguments
 args = parser.parse_args()
 model = args.model
 videos_path = args.videos_path
 job = args.job
 frames = args.frames
 
-# determine if all frames should be processed or just some
-if frames=='all': frame_input = ''
+# Determine if all frames should be processed or just some
+if frames == 'all': frame_input = ''
 else: frame_input = f' --frames {frames}'
 
-# identify and set model paths
+# Identify and set model paths
 def find_models(path):
     centroid_model = []
     centered_model = []
@@ -46,44 +53,49 @@ def find_models(path):
                 full_path = full_path + '/training_config.json'
                 centered_model.append(full_path)
 
-    if(len(centroid_model)>1 and len(centered_model)>1): raise Exception(f"Multiple centroid and centered models detected! \nInvestigate in this directory: \n{path}")
-    if(len(centroid_model)>1): raise Exception(f"Multiple centroid models detected! \nInvestigate in this directory: \n{path}")
-    if(len(centered_model)>1): raise Exception(f"Multiple centered models detected! \nInvestigate in this directory: \n{path}")
+    if len(centroid_model) > 1 and len(centered_model) > 1:
+        raise Exception(f"Multiple centroid and centered models detected! \nInvestigate in this directory: \n{path}")
+    if len(centroid_model) > 1:
+        raise Exception(f"Multiple centroid models detected! \nInvestigate in this directory: \n{path}")
+    if len(centered_model) > 1:
+        raise Exception(f"Multiple centered models detected! \nInvestigate in this directory: \n{path}")
 
-    return(centroid_model[0], centered_model[0])
+    return centroid_model[0], centered_model[0]
 
-if model == 'sideview': 
+if model == 'sideview':
     path = '/camp/lab/windingm/home/shared/models/sideview/active/'
     skel_parts = ['head', 'mouthhooks', 'body', 'tail', 'spiracle']
 
-elif model == 'topdown': 
+elif model == 'topdown':
     path = '/camp/lab/windingm/home/shared/models/topdown/active/'
     skel_parts = ['head', 'body', 'tail']
 
-elif model == 'pupae': 
+elif model == 'pupae':
     path = '/camp/lab/windingm/home/shared/models/pupae/active/'
     skel_parts = ['head', 'body', 'tail']
 
 else:
     raise ValueError('Model parameter must be "sideview", "topdown", or "pupae"!')
-    
 
 centroid_model, centered_model = find_models(path)
 
-# identify paths and filenames of all .mp4s in folder
-if(os.path.isdir(videos_path)):
-    video_file_paths = [f'{videos_path}/{f}' for f in os.listdir(videos_path) if os.path.isfile(os.path.join(videos_path, f)) and (f.endswith('.mp4')) and not (f.endswith('playback.mp4'))]
+# Identify paths and filenames of all .mp4s in folder
+if os.path.isdir(videos_path):
+    video_file_paths = [
+        f'{videos_path}/{f}' for f in os.listdir(videos_path)
+        if os.path.isfile(os.path.join(videos_path, f)) and f.endswith('.mp4') and not f.endswith('playback.mp4')
+    ]
     names = [os.path.basename(video_file_path).replace('.mp4', '') for video_file_path in video_file_paths]
 else:
     print('Error: -p/--videos-path is not a directory!')
 
 num_videos = len(video_file_paths)
 
-# join all paths together in one string that can be later split by the .sh script
+# Join all paths together in one string that can be later split by the .sh script
 video_file_paths_joined = ' '.join(video_file_paths)
 names_joined = ' '.join(names)
 
-# sbatch script to run the array job, to run batch predictions with SLEAP on all videos
+# SBATCH script to run the array job, to run batch predictions with SLEAP on all videos
 script = f"""#!/bin/bash
 #SBATCH --job-name=slp-infer
 #SBATCH --ntasks=1
@@ -103,7 +115,7 @@ source /camp/apps/eb/software/Anaconda/conda.env.sh
 
 conda activate /camp/lab/windingm/home/shared/conda-envs/sleap
 
-# convert ip_string to shell array
+# Convert ip_string to shell array
 IFS=' ' read -r -a path_array <<< "{video_file_paths_joined}"
 path_var="${{path_array[$SLURM_ARRAY_TASK_ID-1]}}"
 
@@ -129,22 +141,17 @@ echo "Output path: {videos_path}/$name_var.tracks.slp"
 sleap-track --tracking.tracker simple --verbosity rich -o {videos_path}/$name_var.tracks.slp {videos_path}/$name_var.predictions.slp
 """
 
-#if ('c' in job) and ('t' in job):
-#    script += f"""
-#sleap-convert {videos_path}/$name_var.tracks.slp -o {videos_path}/$name_var.tracks.h5 --format analysis
-#"""
-
-# wait until all jobs are done
+# Wait until all jobs are done
 def check_job_completed(job_id, initial_wait=120, wait=120):
     seconds = initial_wait
-    print(f"\tWait for {seconds} seconds before checking if slurm job has completed")
+    print(f"\tWait for {seconds} seconds before checking if Slurm job has completed")
     time.sleep(seconds)
     
     # Wait for the array job to complete
-    print(f"\tWaiting for slurm job {job_id} to complete...")
+    print(f"\tWaiting for Slurm job {job_id} to complete...")
     while not is_job_completed(job_id):
         print(f"\tSlurm job {job_id} is still running. Waiting...")
-        time.sleep(wait)  # Check every 30 seconds
+        time.sleep(wait)  # Check every 'wait' seconds
 
     print(f"\tSlurm job {job_id} has completed.\n")
 
@@ -164,7 +171,7 @@ def is_job_completed(job_id):
         job_id_part, job_state = parts[0], parts[1]
 
         # Check for the main job ID and any array tasks
-        if job_id_part == job_id or "_" in job_id_part:  # This line is modified to also consider the main job
+        if job_id_part == job_id or "_" in job_id_part:
             if job_state not in ["COMPLETED", "FAILED", "CANCELLED"]:
                 all_completed = False
                 break
@@ -172,15 +179,18 @@ def is_job_completed(job_id):
     return all_completed
 
 if ('p' in job) or ('t' in job):
+    # Timing the job submission and waiting
+    step_start_time = time.time()
+    
     # Create a temporary file to hold the SBATCH script
     with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_script:
         tmp_script.write(script)
         tmp_script_path = tmp_script.name
 
-    # run the SBATCH script
+    # Run the SBATCH script
     process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-    # delete the temporary sbatch file after submission
+    # Delete the temporary SBATCH file after submission
     os.unlink(tmp_script_path)
 
     # Check the result and extract job ID from the output
@@ -191,53 +201,59 @@ if ('p' in job) or ('t' in job):
         job_id = job_id_output.split()[-1]
     
     check_job_completed(job_id)
+    
+    if ('p' in job): print_elapsed_time(step_start_time, "Array job for SLEAP predictions")
+    if ('t' in job): print_elapsed_time(step_start_time, "Array job for SLEAP tracking")
+    if (('p' in job) and ('t' in job)): print_elapsed_time(step_start_time, "Array job for SLEAP predictions and tracking")
 
-# convert .slp to .feather
+# Convert .slp to .feather
 def slp_to_feather(file_path, skel_parts, track_ids):
-
     feather_file = file_path.replace('.slp', '.feather')
     label_obj = read(file_path, for_object='labels')
 
     data = []
     for i, frame in enumerate(label_obj.labeled_frames):
         for j, instance in enumerate(frame._instances):
-            if track_ids: j = int(instance.track.name.replace("track_", "")) # adds in the track ID instead of the jth index
-            array = [j] + [i] + [instance.score] + list(instance.points_and_scores_array.flatten())
-            array = [np.round(x, 2).astype('float32') for x in array] # reduce size of data
+            if track_ids:
+                j = int(instance.track.name.replace("track_", ""))  # Use the track ID
+            array = [j, i, instance.score] + list(instance.points_and_scores_array.flatten())
+            array = [np.round(x, 2).astype('float32') for x in array]  # Reduce data size
             data.append(array)
 
     columns = ['track_id', 'frame', 'instance_score']
     for part in skel_parts:
         columns.extend([f'x_{part}', f'y_{part}', f'score_{part}'])
 
-    df = pd.DataFrame(data, columns = columns)
-    df.reset_index(drop=True, inplace=True) # prevents a serialisation error in feather conversion
+    df = pd.DataFrame(data, columns=columns)
+    df.reset_index(drop=True, inplace=True)  # Prevents a serialization error in Feather conversion
     df.to_feather(feather_file)
 
-# convert all .mp4s names to .slp names folder
-if 't' in job: video_file_paths = [x.replace('.mp4', '.tracks.slp') for x in video_file_paths]
-else: video_file_paths = [x.replace('.mp4', '.predictions.slp') for x in video_file_paths]
+# Convert all .mp4 names to .slp names in folder
+if 't' in job:
+    video_file_paths = [x.replace('.mp4', '.tracks.slp') for x in video_file_paths]
+else:
+    video_file_paths = [x.replace('.mp4', '.predictions.slp') for x in video_file_paths]
 
 # Parallelize the conversion of .slp files to .feather files
 if 'c' in job:
-    if 't' in job: track_ids = True
-    if 't' not in job: track_ids = False
+    if 't' in job:
+        track_ids = True
+    else:
+        track_ids = False
 
     print(video_file_paths)
+    
+    # Timing the conversion of .slp to .feather
+    step_start_time = time.time()
 
     Parallel(n_jobs=-1)(
         delayed(slp_to_feather)(path, skel_parts, track_ids=track_ids) for path in tqdm(video_file_paths, desc="Processing .slp files")
     )
+    
+    print_elapsed_time(step_start_time, "Converting .slp to .feather files")
 
 # DBSCAN cluster analysis
-# adapted from Anna Seggewisse
-from sklearn.cluster import DBSCAN
-
-eps = 45
-cos = 0.9
-
 def DBSCAN_cluster(file_path, eps, cos):
-
     # Load the dataset from the Feather file
     data = pd.read_feather(file_path)
 
@@ -248,8 +264,8 @@ def DBSCAN_cluster(file_path, eps, cos):
     coordinates['vector_x'] = coordinates['x_tail'] - coordinates['x_head']
     coordinates['vector_y'] = coordinates['y_tail'] - coordinates['y_head']
 
-    # Define the custom distance function with separate checks
-    def custom_distance(A, B, cos):
+    # Define the custom distance function
+    def custom_distance(A, B):
         tail_A = A[:2]  # x_tail and y_tail of A
         tail_B = B[:2]  # x_tail and y_tail of B
         euclidean_tail_dist = np.linalg.norm(tail_A - tail_B)
@@ -277,7 +293,7 @@ def DBSCAN_cluster(file_path, eps, cos):
         data_for_clustering = group[['x_tail', 'y_tail', 'vector_x', 'vector_y']].values
         
         # Apply DBSCAN with the custom metric
-        dbscan = DBSCAN(eps=eps, min_samples=3, metric=lambda A, B: custom_distance(A, B, cos))
+        dbscan = DBSCAN(eps=eps, min_samples=3, metric=custom_distance)
         labels = dbscan.fit_predict(data_for_clustering)
         
         group['cluster'] = labels
@@ -286,19 +302,20 @@ def DBSCAN_cluster(file_path, eps, cos):
     # Concatenate all frame clustering results into a single DataFrame
     result_df = pd.concat(clustering_results, ignore_index=True)
 
-    # Save clustering results to a CSV file named after the original Feather file
+    # Save clustering results to a Feather file named after the original Feather file
     save_file_path = f"{file_path.replace('.feather', '')}_DBSCAN-eps-{eps}_cos-{cos}.feather"
     result_df.to_feather(save_file_path)
 
     # Filter results for 1 frame every 1000 frames
     filtered_df = result_df[result_df['frame'] % 1000 == 0]
 
-    # Save the filtered results to a CSV file
+    # Save the filtered results to a Feather file
     filtered_save_path = file_path.replace('.feather', f'_DBSCANeps-{eps}_cos-{cos}_1-in-1000frames.feather')
     filtered_df.to_feather(filtered_save_path)
 
-    filtered_save_path = file_path.replace('.feather', '.csv')
-    filtered_df.to_csv(filtered_save_path)
+    # Also save as CSV
+    filtered_save_path_csv = file_path.replace('.feather', '.csv')
+    filtered_df.to_csv(filtered_save_path_csv)
 
 if 'd' in job:
     eps = 45
@@ -306,7 +323,12 @@ if 'd' in job:
     feather_file_paths = [x.replace('.slp', '.feather') for x in video_file_paths]
 
     print(feather_file_paths)
+    
+    # Timing the DBSCAN clustering
+    step_start_time = time.time()
 
     Parallel(n_jobs=-1)(
         delayed(DBSCAN_cluster)(path, eps=eps, cos=cos) for path in tqdm(feather_file_paths, desc="DBSCAN processing .feather files")
     )
+    
+    print_elapsed_time(step_start_time, "DBSCAN clustering")
