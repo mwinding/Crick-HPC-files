@@ -242,13 +242,14 @@ if 'd' in job:
 
     # join all paths together in one string that can be later split by the .sh script
     feather_file_paths_joined = ' '.join(feather_file_paths)
+    array_size = len(feather_file_paths)
 
     # sbatch script to run the array job, to run batch predictions with SLEAP on all videos
     script = f"""#!/bin/bash
     #SBATCH --job-name=slp-DBSCAN
     #SBATCH --ntasks=1
     #SBATCH --cpus-per-task=32
-    #SBATCH --array=1-{len(feather_file_paths)}
+    #SBATCH --array=1-{array_size}
     #SBATCH --partition=ncpu
     #SBATCH --mem=200G
     #SBATCH --time=2:00:00
@@ -287,6 +288,7 @@ if 'd' in job:
 
     # delete the temporary sbatch file after submission
     os.unlink(tmp_script_path)
+    print('Finished creating, running, and deleting temporary .sh file...')
 
     # Check the result and extract job ID from the output
     if process.returncode == 0:
