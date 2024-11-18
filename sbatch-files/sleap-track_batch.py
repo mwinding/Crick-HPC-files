@@ -252,7 +252,7 @@ if 'd' in job:
     #SBATCH --array=1-{array_size}
     #SBATCH --partition=ncpu
     #SBATCH --mem=200G
-    #SBATCH --time=2:00:00
+    #SBATCH --time=8:00:00
     #SBATCH --mail-user=$(whoami)@crick.ac.uk
     #SBATCH --mail-type=FAIL
 
@@ -269,7 +269,6 @@ if 'd' in job:
     base_var=$(basename "$path_var")
 
     echo "SLURM_ARRAY_TASK_ID: $SLURM_ARRAY_TASK_ID"
-    echo "Path array size: ${#path_array[@]}"
 
     echo "Processing mp4: $base_var"
     echo "Full path to mp4: $path_var"
