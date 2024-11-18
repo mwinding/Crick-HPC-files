@@ -244,6 +244,8 @@ if 'd' in job:
     feather_file_paths_joined = ' '.join(feather_file_paths)
     array_size = len(feather_file_paths)
 
+    print(feather_file_paths_joined)
+
     # sbatch script to run the array job, to run batch predictions with SLEAP on all videos
     script = f"""#!/bin/bash
     #SBATCH --job-name=slp-DBSCAN
@@ -276,8 +278,9 @@ if 'd' in job:
     echo "Centered instance model path: {centered_model}"
     echo "Output path: {videos_path}/$base_var.predictions.slp"
 
-    cmd="python -u /camp/lab/windingm/home/shared/Crick-HPC-files/sbatch-files/sleap-track_batch-DBSCAN.py -f "$path_var" -e "{eps}" -c "{cos}"" 
-    $cmd > python-output_DBSCAN-$base_var.log 2>&1
+    cmd="python -u /camp/lab/windingm/home/shared/Crick-HPC-files/sbatch-files/sleap-track_batch-DBSCAN.py -f \"$path_var\" -e \"$eps\" -c \"$cos\""
+    echo "Running command: $cmd"
+    eval $cmd > python-output_DBSCAN-$base_var.log 2>&1
     """
 
     # Create a temporary file to hold the SBATCH script
