@@ -30,4 +30,4 @@ echo "Centered instance model path: {centered_model}"
 echo "Output path: {videos_path}/$base_var.predictions.slp"
 
 cmd="python -u /camp/lab/windingm/home/shared/Crick-HPC-files/sbatch-files/sleap-track_batch-DBSCAN.py -f "$path_var" -e "45" -c "0.9"" 
-$cmd > python-output_DBSCAN-$base_var.log 2>&1
+eval $cmd > python-output_DBSCAN-$base_var.log 2>&1
