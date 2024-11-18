@@ -268,20 +268,23 @@ if 'd' in job:
     path_var="${{path_array[$SLURM_ARRAY_TASK_ID-1]}}"
     base_var=$(basename "$path_var")
 
-    echo "Processing mp4: $name_var"
+    echo "SLURM_ARRAY_TASK_ID: $SLURM_ARRAY_TASK_ID"
+    echo "Path array size: ${#path_array[@]}"
+
+    echo "Processing mp4: $base_var"
     echo "Full path to mp4: $path_var"
     echo "Centroid model path: {centroid_model}"
     echo "Centered instance model path: {centered_model}"
-    echo "Output path: {videos_path}/$name_var.predictions.slp"
+    echo "Output path: {videos_path}/$base_var.predictions.slp"
 
     cmd="python -u /camp/lab/windingm/home/shared/Crick-HPC-files/sbatch-files/sleap-track_batch-DBSCAN.py -f "$path_var" -e "{eps}" -c "{cos}"" 
-    eval $cmd > python-output_DBSCAN-$base_var.log 2>&1
+    $cmd > python-output_DBSCAN-$base_var.log 2>&1
     """
 
     # Create a temporary file to hold the SBATCH script
-    with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_script:
-        tmp_script.write(script)
-        tmp_script_path = tmp_script.name
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp_script2:
+        tmp_script2.write(script)
+        tmp_script_path = tmp_script2.name
 
     # run the SBATCH script
     process = subprocess.run(["sbatch", tmp_script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -289,6 +292,9 @@ if 'd' in job:
     # delete the temporary sbatch file after submission
     os.unlink(tmp_script_path)
     print('Finished creating, running, and deleting temporary .sh file...')
+
+    print("STDOUT:", process.stdout)
+    print("STDERR:", process.stderr)
 
     # Check the result and extract job ID from the output
     if process.returncode == 0:
