@@ -25,8 +25,6 @@ echo "SLURM_ARRAY_TASK_ID: $SLURM_ARRAY_TASK_ID"
 
 echo "Processing mp4: $base_var"
 echo "Full path to mp4: $path_var"
-echo "Centroid model path: {centroid_model}"
-echo "Centered instance model path: {centered_model}"
 echo "Output path: {videos_path}/$base_var.predictions.slp"
 
 cmd="python -u /camp/lab/windingm/home/shared/Crick-HPC-files/sbatch-files/sleap-track_batch-DBSCAN.py -f "$path_var" -e "45" -c "0.9"" 
