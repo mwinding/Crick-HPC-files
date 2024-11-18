@@ -241,9 +241,6 @@ def DBSCAN_cluster(file_path, eps, cos):
     # Load the dataset from the Feather file
     data = pd.read_feather(file_path)
 
-    # Filter data for every 10th frame
-    #filtered_data = data[(data['frame'] % 10 == 0)]
-
     # Select the relevant columns for DBSCAN (head and tail coordinates)
     coordinates = data[['track_id', 'frame', 'x_head', 'y_head', 'x_tail', 'y_tail']].dropna()
 
@@ -290,8 +287,18 @@ def DBSCAN_cluster(file_path, eps, cos):
     result_df = pd.concat(clustering_results, ignore_index=True)
 
     # Save clustering results to a CSV file named after the original Feather file
-    save_file_path = f"{file_path.replace('.feather', '')}_CustomDBSCANeps={eps}-cos={cos}.csv"
-    result_df.to_csv(save_file_path, index=False)
+    save_file_path = f"{file_path.replace('.feather', '')}_DBSCAN-eps-{eps}_cos-{cos}.feather"
+    result_df.to_feather(save_file_path)
+
+    # Filter results for 1 frame every 1000 frames
+    filtered_df = result_df[result_df['frame'] % 1000 == 0]
+
+    # Save the filtered results to a CSV file
+    filtered_save_path = file_path.replace('.feather', f'_DBSCANeps-{eps}_cos-{cos}_1-in-1000frames.feather')
+    filtered_df.to_feather(filtered_save_path)
+
+    filtered_save_path = file_path.replace('.feather', '.csv')
+    filtered_df.to_csv(filtered_save_path)
 
 if 'd' in job:
     eps = 45
