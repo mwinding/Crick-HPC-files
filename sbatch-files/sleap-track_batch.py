@@ -308,6 +308,7 @@ def DBSCAN_cluster(file_path, eps, cos):
 
     # Filter results for 1 frame every 1000 frames
     filtered_df = result_df[result_df['frame'] % 1000 == 0]
+    filtered_df.reset_index(drop=True, inplace=True)  # Reset index here
 
     # Save the filtered results to a Feather file
     filtered_save_path = file_path.replace('.feather', f'_DBSCANeps-{eps}_cos-{cos}_1-in-1000frames.feather')
