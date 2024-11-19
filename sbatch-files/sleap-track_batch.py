@@ -13,6 +13,7 @@ from sleap.io.format import read
 from joblib import Parallel, delayed
 from tqdm import tqdm
 from sklearn.cluster import DBSCAN
+import datetime
 
 # Function to print elapsed time
 def print_elapsed_time(start_time, step_description):
@@ -83,7 +84,7 @@ centroid_model, centered_model = find_models(path)
 if os.path.isdir(videos_path):
     video_file_paths = [
         f'{videos_path}/{f}' for f in os.listdir(videos_path)
-        if os.path.isfile(os.path.join(videos_path, f)) and f.endswith('.mp4') and not f.endswith('playback.mp4')
+        if os.path.isfile(os.path.join(videos_path, f)) and f.endswith('.mp4') and not f.endswith('playback.mp4') and not f.endswith('1fps.mp4')
     ]
     names = [os.path.basename(video_file_path).replace('.mp4', '') for video_file_path in video_file_paths]
 else:
@@ -315,13 +316,18 @@ def DBSCAN_cluster(file_path, eps, cos):
     filtered_df.to_feather(filtered_save_path)
 
     # Also save as CSV
-    filtered_save_path_csv = file_path.replace('.feather', '.csv')
+    filtered_save_path_csv = file_path.replace('.feather', f'_DBSCANeps-{eps}_cos-{cos}_1-in-1000frames.csv')
     filtered_df.to_csv(filtered_save_path_csv)
 
 if 'd' in job:
+
+    cluster_data_path = f'{videos_path}/clustering/'
+    os.makedirs(cluster_data_path, exist_ok=True)
+
     eps = 45
-    cos = 0.9
+    cos = 0.8667
     feather_file_paths = [x.replace('.slp', '.feather') for x in video_file_paths]
+    feather_file_paths = [x.replace(f'{videos_path}/', f'{videos_path}/clustering/') for x in video_file_paths]
 
     print(feather_file_paths)
     
