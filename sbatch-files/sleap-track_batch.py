@@ -254,7 +254,8 @@ if 'c' in job:
     print_elapsed_time(step_start_time, "Converting .slp to .feather files")
 
 # DBSCAN cluster analysis
-def DBSCAN_cluster(file_path, eps, cos):
+# script adapted from Anna Seggewisse
+def DBSCAN_cluster(file_path, folder_path, eps, cos):
     # Load the dataset from the Feather file
     data = pd.read_feather(file_path)
 
@@ -303,8 +304,10 @@ def DBSCAN_cluster(file_path, eps, cos):
     # Concatenate all frame clustering results into a single DataFrame
     result_df = pd.concat(clustering_results, ignore_index=True)
 
+
     # Save clustering results to a Feather file named after the original Feather file
     save_file_path = f"{file_path.replace('.feather', '')}_DBSCAN-eps-{eps}_cos-{cos}.feather"
+    save_file_path = save_file_path.replace(f'{folder_path}/', f'{folder_path}/clustering/')
     result_df.to_feather(save_file_path)
 
     # Filter results for 1 frame every 1000 frames
@@ -327,7 +330,6 @@ if 'd' in job:
     eps = 45
     cos = 0.8667
     feather_file_paths = [x.replace('.slp', '.feather') for x in video_file_paths]
-    feather_file_paths = [x.replace(f'{videos_path}/', f'{videos_path}/clustering/') for x in video_file_paths]
 
     print(feather_file_paths)
     
@@ -335,7 +337,7 @@ if 'd' in job:
     step_start_time = time.time()
 
     Parallel(n_jobs=-1)(
-        delayed(DBSCAN_cluster)(path, eps=eps, cos=cos) for path in tqdm(feather_file_paths, desc="DBSCAN processing .feather files")
+        delayed(DBSCAN_cluster)(path, videos_path, eps=eps, cos=cos) for path in tqdm(feather_file_paths, desc="DBSCAN processing .feather files")
     )
     
     print_elapsed_time(step_start_time, "DBSCAN clustering")
