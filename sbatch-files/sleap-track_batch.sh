@@ -1,6 +1,7 @@
 #!/bin/bash
-# Usage: sbatch --export=MODEL="sideview" sleap-track_batch.sh
-# optional parameters: sbatch --export=MODEL="sideview",TRACK="False",FRAMES="0-10" sleap-track_batch.sh
+# Usage: sbatch --export=MODEL="sideview",JOB="pcd" sleap-track_batch.sh
+# optional parameters: sbatch --export=MODEL="sideview",JOB='ptcd',TRACK="False",FRAMES="0-10" sleap-track_batch.sh
+# for JOB, p = predict with SLEAP, t = track with SLEAP, c = convert .slp to .feather, and d = DSCAN clustering
 
 # *** MAKE SURE TO USE A REMOTELY-TRAINED MODEL!!!! ***
 # we have experienced issues with locally trained models running remotely...
