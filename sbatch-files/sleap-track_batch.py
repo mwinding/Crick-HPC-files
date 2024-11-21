@@ -314,18 +314,17 @@ def DBSCAN_cluster(file_path, folder_path, eps, cos):
     filtered_df = result_df[result_df['frame'] % 1000 == 0]
     filtered_df.reset_index(drop=True, inplace=True)  # Reset index here
 
-    # Save the filtered results to a Feather file
-    filtered_save_path = file_path.replace('.feather', f'_DBSCANeps-{eps}_cos-{cos}_1-in-1000frames.feather')
-    filtered_df.to_feather(filtered_save_path)
-
     # Also save as CSV
-    filtered_save_path_csv = file_path.replace('.feather', f'_DBSCANeps-{eps}_cos-{cos}_1-in-1000frames.csv')
+    filtered_save_path_csv = file_path.replace('.feather', f'_DBSCANeps-{eps}_cos-{cos}_1per1k.csv')
+    filtered_save_path_csv = filtered_save_path_csv.replace(f'{folder_path}/', f'{folder_path}/clustering_1per1k/')
     filtered_df.to_csv(filtered_save_path_csv)
 
 if 'd' in job:
 
     cluster_data_path = f'{videos_path}/clustering/'
+    cluster_data_path2 = f'{videos_path}/clustering_1per1k/'
     os.makedirs(cluster_data_path, exist_ok=True)
+    os.makedirs(cluster_data_path2, exist_ok=True)
 
     eps = 45
     cos = 0.8667
