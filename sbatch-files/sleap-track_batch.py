@@ -60,6 +60,10 @@ def find_models(path):
         raise Exception(f"Multiple centroid models detected! \nInvestigate in this directory: \n{path}")
     if len(centered_model) > 1:
         raise Exception(f"Multiple centered models detected! \nInvestigate in this directory: \n{path}")
+    if len(centroid_model) == 0:
+        raise Exception(f"No centroid models detected! \nInvestigate in this directory: \n{path}")
+    if len(centered_model) == 0:
+        raise Exception(f"No centered models detected! \nInvestigate in this directory: \n{path}")
 
     return centroid_model[0], centered_model[0]
 
