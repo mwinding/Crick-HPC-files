@@ -143,7 +143,7 @@ sleap-track $path_var --verbosity rich --batch_size 32{frame_input} -m {centroid
 if 't' in job:
     script += f"""
 echo "Output path: {videos_path}/$name_var.tracks.slp"
-sleap-track --tracking.tracker simple --verbosity rich -o {videos_path}/$name_var.tracks.slp {videos_path}/$name_var.predictions.slp
+sleap-track --tracking.tracker flow --verbosity rich -o {videos_path}/$name_var.tracks.slp {videos_path}/$name_var.predictions.slp
 """
 
 # Wait until all jobs are done
