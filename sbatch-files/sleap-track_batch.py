@@ -27,6 +27,7 @@ parser.add_argument('-m', '--model', dest='model', action='store', type=str, req
 parser.add_argument('-p', '--videos-path', dest='videos_path', action='store', type=str, default=None, help='path to ip_address list')
 parser.add_argument('-j', '--job', dest='job', action='store', type=str, default=None, help='p=predict animal locations, t=track animals, c=convert output file to feather')
 parser.add_argument('-f', '--frames', dest='frames', action='store', type=str, default='all', help='track animals?')
+parser.add_argument('-b', '--batch_size', dest='batch_size', action='store', type=int, default=32, help='batch size for SLEAP prediction processing')
 
 # Ingesting user-input arguments
 args = parser.parse_args()
@@ -34,6 +35,7 @@ model = args.model
 videos_path = args.videos_path
 job = args.job
 frames = args.frames
+batch_size = args.batch_size
 
 # Determine if all frames should be processed or just some
 if frames == 'all': frame_input = ''
@@ -137,7 +139,7 @@ echo "Output path: {videos_path}/$name_var.predictions.slp"
 if 'p' in job:
     script += f"""
 echo "Output path: {videos_path}/$name_var.predictions.h5"
-sleap-track $path_var --verbosity rich --batch_size 32{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
+sleap-track $path_var --verbosity rich --batch_size {batch_size}{frame_input} -m {centroid_model} -m {centered_model} -o {videos_path}/$name_var.predictions.slp
 """
 
 if 't' in job:

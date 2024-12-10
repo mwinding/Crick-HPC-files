@@ -30,15 +30,18 @@ DIR=$(pwd)
 # Set JOB to ptc if not entered by user; p = predict, t = track, c = convert to feather output
 : ${JOB:='ptc'}
 
+: ${BATCH_SIZE:='32'}
+
 echo "model type: $MODEL"
 echo "videos directory path: $DIR"
 echo "jobs, p=prediction, t=track, c=convert to feather: $JOB"
 echo "frames: $FRAMES"
+echo "batches: $BATCH_SIZE"
 
 conda activate /camp/lab/windingm/home/shared/conda-envs/sleap #use shared conda env on NEMO
 
 # run python script
 # save output to log file in case there is an issue
 # adding -u makes sure the python_output.log is dynamically written to
-cmd="python -u /camp/lab/windingm/home/shared/Crick-HPC-files/sbatch-files/sleap-track_batch.py -m "$MODEL" -p "$DIR" -j "$JOB" -f "$FRAMES"" 
+cmd="python -u /camp/lab/windingm/home/shared/Crick-HPC-files/sbatch-files/sleap-track_batch.py -m "$MODEL" -p "$DIR" -j "$JOB" -f "$FRAMES" -b "$BATCH_SIZE"" 
 eval $cmd > python_output.log 2>&1
