@@ -108,7 +108,7 @@ script = f"""#!/bin/bash
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --array=1-{num_videos}
-#SBATCH --partition=gpu
+#SBATCH --partition=ga100
 #SBATCH --gres=gpu:1
 #SBATCH --mem=150G
 #SBATCH --time=48:00:00
@@ -332,8 +332,8 @@ if 'd' in job:
     os.makedirs(cluster_data_path, exist_ok=True)
     os.makedirs(cluster_data_path2, exist_ok=True)
 
-    eps = 45
-    cos = 0.8667
+    eps = 43
+    cos = 0.86
     feather_file_paths = [x.replace('.slp', '.feather') for x in video_file_paths]
 
     print(feather_file_paths)
