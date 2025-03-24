@@ -145,7 +145,7 @@ sleap-track $path_var --verbosity rich --batch_size {batch_size}{frame_input} -m
 if 't' in job:
     script += f"""
 echo "Output path: {videos_path}/$name_var.tracks.slp"
-sleap-track --tracking.tracker flow --verbosity rich -o {videos_path}/$name_var.tracks.slp {videos_path}/$name_var.predictions.slp
+sleap-track --tracking.tracker simple --tracking.match hungarian --tracking.similarity iou --tracking.track_window 1 --verbosity rich -o {videos_path}/$name_var.tracks.slp {videos_path}/$name_var.predictions.slp
 """
 
 # Wait until all jobs are done
@@ -167,7 +167,7 @@ def is_job_completed(job_id):
     result = subprocess.run(cmd, stdout=subprocess.PIPE, text=True)
     lines = result.stdout.strip().split('\n')
 
-    # Initialize flags
+    # Initialise flags
     all_completed = True
 
     for line in lines:
@@ -241,9 +241,9 @@ if 't' in job:
 else:
     video_file_paths = [x.replace('.mp4', '.predictions.slp') for x in video_file_paths]
 
-# Parallelize the conversion of .slp files to .feather files
+# Parallelise the conversion of .slp files to .feather files
 if 'c' in job:
-    if 't' in job:
+    if ('t' in job) or ('o' in job):
         track_ids = True
     else:
         track_ids = False
@@ -293,7 +293,7 @@ def DBSCAN_cluster(file_path, folder_path, eps, cos):
         
         return 1000
 
-    # Initialize an empty list to store clustering results
+    # Initialise an empty list to store clustering results
     clustering_results = []
 
     # Loop through each frame for separate clustering
