@@ -34,7 +34,7 @@ DIR=$(pwd)
 
 echo "model type: $MODEL"
 echo "videos directory path: $DIR"
-echo "jobs, p=prediction, t=track, c=convert to feather: $JOB"
+echo "jobs, p=prediction, t=track, c=convert, d=DBSCAN to feather: $JOB"
 echo "frames: $FRAMES"
 echo "batches: $BATCH_SIZE"
 
