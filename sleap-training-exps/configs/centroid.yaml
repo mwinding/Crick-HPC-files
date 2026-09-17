@@ -1,6 +1,6 @@
 data_config:
   train_labels_path:
-    - /camp/lab/windingm/home/shared/sleap/groundtruth/combined/combined_ground_truth_cleaned_visibility_fixed.pkg.slp
+    - /camp/lab/windingm/home/shared/sleap/groundtruth/combined/combined_ground_truth_cleaned_visibility-fixed.pkg.slp
 
   validation_fraction: 0.1
   user_instances_only: true
