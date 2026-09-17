@@ -12,8 +12,8 @@
 #SBATCH --mail-type=FAIL
 
 ml purge
-ml Anaconda3/2023.09-0
-ml CUDA/12.2.0
+ml Anaconda3/2024.10
+ml CUDA/12.2.0 # add new CUDA here!
 source /camp/apps/eb/software/Anaconda/conda.env.sh
 
 conda activate /camp/lab/windingm/home/shared/conda-envs/sleap #use shared conda env on NEMO
