@@ -2,6 +2,7 @@
 # Usage: sbatch --export=MODEL="sideview",JOB="pcd" sleap-track_batch.sh
 # optional parameters: sbatch --export=MODEL="sideview",JOB='ptcd',TRACK="False",FRAMES="0-10" sleap-track_batch.sh
 # for JOB, p = predict with SLEAP, t = track with SLEAP, c = convert .slp to .feather, and d = DSCAN clustering
+# If <MODEL>/active holds sleap-nn models (best.ckpt), this hands over to sleap-nn-track_batch.sh (same parameters).
 
 # *** MAKE SURE TO USE A REMOTELY-TRAINED MODEL!!!! ***
 # we have experienced issues with locally trained models running remotely...
@@ -14,6 +15,11 @@
 #SBATCH --time=48:00:00
 #SBATCH --mail-user=$(whoami)@crick.ac.uk
 #SBATCH --mail-type=FAIL
+
+# sleap-nn models need the sleap-nn env and script
+if ls /camp/lab/windingm/home/shared/models/$MODEL/active/*.centroid/best.ckpt >/dev/null 2>&1; then
+    exec bash /camp/lab/windingm/home/shared/Crick-HPC-files/sbatch-files/sleap-nn-track_batch.sh
+fi
 
 ml purge
 ml Anaconda3/2023.09-0
