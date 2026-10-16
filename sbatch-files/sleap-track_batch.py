@@ -84,6 +84,15 @@ elif model == 'pupae':
 else:
     raise ValueError('Model parameter must be "sideview", "topdown", or "pupae"!')
 
+# Models trained with sleap-nn (best.ckpt) run through sleap-nn-track_batch.py in the sleap165 env. Copies of
+# sleap-track_batch.sh made before the switch call this script, so they keep working.
+if any(os.path.isfile(os.path.join(path, d, 'best.ckpt')) for d in os.listdir(path)):
+    sleap_nn_python = '/camp/lab/windingm/home/shared/conda-envs/sleap165/bin/python'
+    sleap_nn_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sleap-nn-track_batch.py')
+    print(f'sleap-nn models in {path}: running {sleap_nn_script}', flush=True)
+    os.execv(sleap_nn_python, [sleap_nn_python, '-u', sleap_nn_script, '-m', model, '-p', videos_path, '-j', job,
+                               '-f', frames, '-b', str(min(batch_size, 16))])
+
 centroid_model, centered_model = find_models(path)
 
 # Identify paths and filenames of all .mp4s in folder

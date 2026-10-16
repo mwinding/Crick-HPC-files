@@ -1,8 +1,8 @@
 #!/bin/bash
 # sleap-nn version of sleap-track_batch.sh, for models trained with sleap-nn (best.ckpt). Run from the folder of videos.
-# Usage: sbatch --export=MODEL="sideview",JOB="ptc" sleap-nn-track_batch.sh
+# Usage: sbatch --export=MODEL="sideview",JOB="pc" sleap-nn-track_batch.sh
 # optional parameters: sbatch --export=MODEL="sideview",JOB='ptcd',FRAMES="0-10",TRACKER="simple",MODELS_DIR="/path/to/models" sleap-nn-track_batch.sh
-# for JOB, p = predict, t = track, c = convert .slp to .feather, and d = DBSCAN clustering
+# for JOB, p = predict, t = track, c = convert .slp to .feather, and d = DBSCAN clustering (default pc: no tracking)
 # TRACKER: flow (default, optical flow, as the deployed sleap-track_batch.py) or simple (iou, hungarian, window 1)
 # MODELS_DIR: folder with one <name>.centroid and one <name>.centered_instance model (default: <MODEL>/active)
 
@@ -22,7 +22,7 @@ source /camp/apps/eb/software/Anaconda/conda.env.sh
 DIR=$(pwd)
 
 : ${FRAMES:='all'}
-: ${JOB:='ptc'}
+: ${JOB:='pc'}
 : ${BATCH_SIZE:='4'}
 : ${TRACKER:='flow'}
 : ${MODELS_DIR:=''}
